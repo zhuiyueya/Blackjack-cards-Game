@@ -20,7 +20,7 @@ int main1() {
 	}
 }
 int main() {
-	
+
 	srand(time(0));
 	Control c;
 	initgraph(WIDTH, HEIGHT);

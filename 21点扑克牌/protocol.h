@@ -37,6 +37,8 @@ struct PDU {
 	int cardId;
 	int msgType;
 	char msg[64];
+	int msgLen;
+	int mainMsg[];
 };
 enum procotol {
 	ENUM_MSG_LOGIN_REQUEST,//登录请求
@@ -57,6 +59,11 @@ enum procotol {
 	ENUM_MSG_UPDATE_DOWNCOUNT_TIME_RESPOND,//倒计时更新通知回复
 	ENUM_MSG_CANCEL_MATCH_REQUEST,//取消匹配请求
 	ENUM_MSG_CANCEL_MATCH_RESPOND,//取消匹配回复
+
+	ENUM_MSG_GET_VERIFICATION_CODE_REQUEST,//获取验证码请求
+	ENUM_MSG_GET_VERIFICATION_CODE_RESPOND,//获取验证码回复
+
+
 };
 //当前所处界面状态
 enum windowstate {
@@ -65,7 +72,10 @@ enum windowstate {
 	WINDOW_STATE_MATCH_SUCCEED, //匹配成功
 	WINDOW_STATE_MATCH_FAILED,//匹配失败
 	WINDOW_STATE_GAME,//游戏界面
-	
+	WINDOW_STATE_REGISTER,//注册界面
+	WINDOW_STATE_LOGIN,//登录界面
+
 };
+PDU* mkPDU(int msgLen);
 void init();
 void button(int x,int y,LPCTSTR text,bool isTransparent=false,int width=100,int height=40);

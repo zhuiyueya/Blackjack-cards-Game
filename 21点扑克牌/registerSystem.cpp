@@ -57,6 +57,27 @@ registerSystem::registerSystem(SOCKET sock)
 	accountY += BTN_SIZE_300_40_H * 2;
 	m_confirmSubmitBtn = Button(accountX, accountY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
+	//初始化注册按钮
+	m_registerBtn = Button(accountX+ BTN_SIZE_300_40_W- BTN_SIZE_80_40_W, accountY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+	//在点击了注册按钮后再进行初始化
+	
+	////电子邮件输入框
+	//Button m_emailInputBox;
+
+	////电子邮件输入框提示
+	//Button m_emailInputTip;
+
+	////验证码输入框
+	//Button m_verificationCodeInputBox;
+
+	////验证码输入框提示
+	//Button m_verificationCodeInputTip;
+
+	////发送验证码按钮
+	//Button m_sendVerificationCodeBtn;
+
+
 
 	m_isInputAccount = true;
 
@@ -65,6 +86,12 @@ registerSystem::registerSystem(SOCKET sock)
 	m_csock = sock;
 
 	m_isInputPwd = false;
+
+	m_windowState = WINDOW_STATE_LOGIN;
+
+	m_isInputVerificationCode = false;
+
+	m_isInputEmail = false;
 }
 
 
@@ -83,8 +110,11 @@ void registerSystem::draw()
 	//绘制账号输入框的提示
 	m_accountInputTip.draw(_T("账号:"));
 
-	//绘制确认提交-登录按钮
-	m_confirmSubmitBtn.draw(_T("登录"));
+	//若为登录界面
+	if (m_windowState == WINDOW_STATE_LOGIN) {
+		//绘制确认提交-登录按钮
+		m_confirmSubmitBtn.draw(_T("登录"));
+	}
 
 	//绘制密码输入框
 	m_pwdInputBox.draw(m_pwd, BTN_TEXT_STYLE_LEFT);
@@ -92,6 +122,27 @@ void registerSystem::draw()
 	//绘制密码输入框的提示
 	m_pwdInputTip.draw(_T("密码:"));
 	
+	//绘制注册按钮
+	m_registerBtn.draw(_T("注册"));
+
+	//若为注册界面
+	if (m_windowState == WINDOW_STATE_REGISTER) {
+
+		//绘制邮件输入框
+		m_emailInputBox.draw(m_email,BTN_TEXT_STYLE_LEFT);
+
+		//绘制邮件输入框提示
+		m_emailInputTip.draw(_T("邮件地址:"));
+
+		//绘制验证码输入框
+		m_verificationCodeInputBox.draw(m_verificationCode, BTN_TEXT_STYLE_LEFT);
+
+		//绘制验证码输入框提示
+		m_verificationCodeInputTip.draw(_T("验证码:"));
+
+		m_sendVerificationCodeBtn.draw(_T("发送"));
+
+	}
 }
 
 //监听登录界面鼠标事件
@@ -106,6 +157,12 @@ void registerSystem::mouseEvent()
 			if (mx > m_accountInputBox.beginX && mx< m_accountInputBox.endX && my>m_accountInputBox.beginY && my < m_accountInputBox.endY) {
 				m_isInputAccount = true;
 				m_isInputPwd = false;
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+					removeCursor(m_verificationCode);
+					removeCursor(m_email);
+				}
 				//确认是否本来就是处于输入状态（m_isInputAccount==true），若是此时不用再绘制光标|，否则绘制，即添加|进数组
 				int i;
 				for (i = 0; i < wcslen(m_account); i++) {
@@ -124,10 +181,17 @@ void registerSystem::mouseEvent()
 					}
 				}
 				
-			}//点击了密码输入框
+			}
+			//点击了密码输入框
 			else if (mx > m_pwdInputBox.beginX && mx<m_pwdInputBox.endX && my>m_pwdInputBox.beginY && my < m_pwdInputBox.endY) {
 				m_isInputPwd = true;
 				m_isInputAccount = false;
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+					removeCursor(m_verificationCode);
+					removeCursor(m_email);
+				}
 
 				//确认是否本来就是处于输入状态（m_isInputPwd==true），若是此时不用再绘制光标|，否则绘制，即添加|进数组
 				int i;
@@ -147,11 +211,48 @@ void registerSystem::mouseEvent()
 					}
 				}
 
+				
+				
+
+			}
+			//在注册界面点击了邮箱输入框
+			else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_emailInputBox.beginX && mx<m_emailInputBox.endX &&
+				my>m_emailInputBox.beginY && my < m_emailInputBox.endY) {
+
+				//切换光标
+				m_isInputPwd = false;
+				m_isInputAccount = false;
+				m_isInputVerificationCode = false;
+				m_isInputEmail = true;
+
+				addCursor(m_email);
+				removeCursor(m_account);
+				removeCursor(m_pwd);
+				removeCursor(m_verificationCode);
+
+			}
+			//在注册界面点击了验证码输入框
+			else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_verificationCodeInputBox.beginX && m_verificationCodeInputBox.endX > mx &&
+				my > m_verificationCodeInputBox.beginY && m_verificationCodeInputBox.endY > my) {
+
+				//切换光标
+				m_isInputPwd = false;
+				m_isInputAccount = false;
+				m_isInputVerificationCode = true;
+				m_isInputEmail = false;
+
+				addCursor(m_verificationCode);
+
+				removeCursor(m_account);
+				removeCursor(m_pwd);
+				removeCursor(m_email);
+
 			}
 			else {//非点击输入框
 
 				m_isInputAccount = false;
 				m_isInputPwd = false;
+
 				//去掉账号输入框的光标
 				for (int i = 0; i < wcslen(m_account); i++) {
 					if (m_account[i] == _T('|')) {
@@ -168,69 +269,130 @@ void registerSystem::mouseEvent()
 					}
 				}
 
-				//点击了提交按钮
-				if (mx > m_confirmSubmitBtn.beginX && mx< m_confirmSubmitBtn.endX &&
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+					removeCursor(m_verificationCode);
+					removeCursor(m_email);
+				}
+
+				//在登录界面点击了提交按钮
+				if (m_windowState==WINDOW_STATE_LOGIN&&mx > m_confirmSubmitBtn.beginX && mx< m_confirmSubmitBtn.endX &&
 					my>m_confirmSubmitBtn.beginY && my < m_confirmSubmitBtn.endY&&wcslen(m_account)>0) {
+					
 					sendLoginRequest();
+				}
+				//点击了注册按钮
+				else if (mx > m_registerBtn.beginX && mx< m_registerBtn.endX && my>m_registerBtn.beginY && my < m_registerBtn.endY) {
+					//若当前窗口为登录窗口，则跳转到注册窗口
+					if (m_windowState == WINDOW_STATE_LOGIN) {
+						initRegisterWindow();
+						m_windowState = WINDOW_STATE_REGISTER;
+					}
+					//若当前窗口为注册窗口，则进行注册账号，向服务器发送请求
+					else if (m_windowState == WINDOW_STATE_REGISTER) {
+						
+						sendRegisterRequest();
+					}
+				}
+				//在注册账号界面点击了发送验证码按钮
+				else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_sendVerificationCodeBtn.beginX && mx< m_sendVerificationCodeBtn.endX &&
+					my>m_sendVerificationCodeBtn.beginY && my < m_sendVerificationCodeBtn.endY) {
+						
+					sendGetVerificationCodeRequest();
 				}
 			}
 		}
+		//事件为键盘事件时
 		else if (msg.message == WM_CHAR) {
 			//正在输入账号
 			if (m_isInputAccount) {
 				//输入为回退(backspace)时
-				if(msg.vkcode== VK_BACK){
-					if (wcslen(m_account) > 1) {
-						/*for (int i = 0; i < wcslen(m_account); i++) {
-							if (m_account[i] == _T('|')) {
-								m_account[i] = _T('\0');
-								break;
-							}
-						}*/
-
-						m_account[wcslen(m_account) - 2] = _T('|');
-						m_account[wcslen(m_account) - 1] = _T('\0');
-					}
-				}
-				//输入为普通字符时
+				if (msg.vkcode == VK_BACK) {
+					delOldChar(m_account);
+				}//输入为普通字符时
 				else {
-					if (wcslen(m_account) < 32) {
-						for (int i = 0; i < wcslen(m_account); i++) {
-							if (m_account[i] == _T('|')) {
-								m_account[i] = _T('\0');
-								break;
-							}
-						}
-
-						swprintf(m_account, _T("%s%c|"), m_account, msg.ch);
-					}
+					addNewChar(m_account, msg.ch);
 				}
+				////输入为回退(backspace)时
+				//if(msg.vkcode== VK_BACK){
+				//	if (wcslen(m_account) > 1) {
+				//		/*for (int i = 0; i < wcslen(m_account); i++) {
+				//			if (m_account[i] == _T('|')) {
+				//				m_account[i] = _T('\0');
+				//				break;
+				//			}
+				//		}*/
+				//
+				//		m_account[wcslen(m_account) - 2] = _T('|');
+				//		m_account[wcslen(m_account) - 1] = _T('\0');
+				//	}
+				//}
+				////输入为普通字符时
+				//else {
+				//	if (wcslen(m_account) < 32) {
+				//		for (int i = 0; i < wcslen(m_account); i++) {
+				//			if (m_account[i] == _T('|')) {
+				//				m_account[i] = _T('\0');
+				//				break;
+				//			}
+				//		}
+				//
+				//		swprintf(m_account, _T("%s%c|"), m_account, msg.ch);
+				//	}
+				//}
 				
 			}
 			//正在输入密码
 			else if (m_isInputPwd) {
 				//输入为回退(backspace)时
 				if (msg.vkcode == VK_BACK) {
-					if (wcslen(m_pwd) > 1) {
-						m_pwd[wcslen(m_pwd) - 2] = _T('|');
-						m_pwd[wcslen(m_pwd) - 1] = _T('\0');
-					}
+					delOldChar(m_pwd);
 				}//输入为普通字符时
 				else {
-					if (wcslen(m_pwd) < 32) {
-						std::cout << wcslen(m_pwd) << std::endl;
-						for (int i = 0; i < wcslen(m_pwd); i++) {
-							if (m_pwd[i] == _T('|')) {
-								m_pwd[i] = _T('\0');
-								break;
-							}
-						}
-
-						swprintf(m_pwd, _T("%s%c|"), m_pwd, msg.ch);
-					}
+					addNewChar(m_pwd, msg.ch);
+				}
+				//输入为回退(backspace)时
+				//if (msg.vkcode == VK_BACK) {
+				//	if (wcslen(m_pwd) > 1) {
+				//		m_pwd[wcslen(m_pwd) - 2] = _T('|');
+				//		m_pwd[wcslen(m_pwd) - 1] = _T('\0');
+				//	}
+				//}//输入为普通字符时
+				//else {
+				//	if (wcslen(m_pwd) < 32) {
+				//		std::cout << wcslen(m_pwd) << std::endl;
+				//		for (int i = 0; i < wcslen(m_pwd); i++) {
+				//			if (m_pwd[i] == _T('|')) {
+				//				m_pwd[i] = _T('\0');
+				//				break;
+				//			}
+				//		}
+				//
+				//		swprintf(m_pwd, _T("%s%c|"), m_pwd, msg.ch);
+				//	}
+				//}
+			}
+			//正在输入邮箱
+			else if (m_isInputEmail) {
+				//输入为回退(backspace)时
+				if (msg.vkcode == VK_BACK) {
+					delOldChar(m_email);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_email, msg.ch);
 				}
 			}
-			
+			//正在输入验证码
+			else if (m_isInputVerificationCode) {
+				//输入为回退(backspace)时
+				if (msg.vkcode == VK_BACK) {
+					delOldChar(m_verificationCode);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_verificationCode, msg.ch);
+				}
+			}
 			
 		}
 	}
@@ -238,7 +400,10 @@ void registerSystem::mouseEvent()
 	//光标|闪烁
 	setInputFlashFlag(m_isInputAccount, m_account);
 	setInputFlashFlag(m_isInputPwd, m_pwd);
-
+	if (m_windowState == WINDOW_STATE_REGISTER) {
+		setInputFlashFlag(m_isInputEmail, m_email);
+		setInputFlashFlag(m_isInputVerificationCode, m_verificationCode);
+	}
 	////设置输入账号时|闪烁
 	//static int flash = 1;
 	////|不可见
@@ -288,7 +453,6 @@ wchar_t* registerSystem::play()
 	EndBatchDraw();
 	return m_account;
 }
-
 
 //获取账号
 wchar_t* registerSystem::getAccount()
@@ -374,6 +538,120 @@ void registerSystem::setInputFlashFlag(bool isInput, wchar_t* content)
 wchar_t* registerSystem::getPwd()
 {
 	return m_pwd;
+}
+
+//当切换为注册界面时的初始化
+void registerSystem::initRegisterWindow()
+{
+	int beginX = m_pwdInputBox.beginX;
+	int beginY = m_pwdInputBox.beginY;
+
+	//电子邮件输入框
+	beginY += BTN_SIZE_300_40_H*2;
+	m_emailInputBox = Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
+
+	//电子邮件输入框提示
+	beginX -= BTN_SIZE_80_40_W * 2;
+	m_emailInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+	//验证码输入框提示
+	beginY += BTN_SIZE_300_40_H * 2;
+	m_verificationCodeInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+	//验证码输入框
+	beginX += BTN_SIZE_80_40_W * 2;
+	m_verificationCodeInputBox=Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
+
+	//发送验证码按钮
+	beginX += BTN_SIZE_300_40_W;
+	m_sendVerificationCodeBtn= Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+	//注册按钮
+	beginY+= BTN_SIZE_300_40_H * 2;
+	beginX -= BTN_SIZE_300_40_W;
+	m_registerBtn = Button(beginX+ BTN_SIZE_300_40_W- BTN_SIZE_80_40_W, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+}
+
+//为鼠标点击的所属添加光标
+void registerSystem::addCursor(wchar_t* content)
+{
+	//确认是否本来就是处于输入状态（content==true），若是此时不用再绘制光标|，否则绘制，即添加|进数组
+	int i;
+	for (i = 0; i < wcslen(content); i++) {
+		if (content[i] == _T('|')) {
+			break;
+		}
+	}
+	if (i == wcslen(content))
+		swprintf(content, _T("%s|"), content);
+}
+
+//为非鼠标点击的所属移除光标
+void registerSystem::removeCursor(wchar_t* content)
+{
+	//去掉content输入框的光标
+	for (int i = 0; i < wcslen(content); i++) {
+		if (content[i] == _T('|')) {
+			content[i] = _T('\0');
+			break;
+		}
+	}
+}
+
+//往content内添加新字符
+void registerSystem::addNewChar(wchar_t* content, char newch)
+{
+	int maxlength=31;
+	
+	for (int i = 0; i < wcslen(content); i++) {
+		if (content[i] == _T('|')) {
+			maxlength += 1;
+			break;
+		}
+	}
+	
+	if (wcslen(content) < maxlength) {
+		removeCursor(content);
+		swprintf(content, _T("%s%c|"), content, newch);
+	}
+}
+
+//往content内移除旧字符
+void registerSystem::delOldChar(wchar_t* content)
+{
+	if (wcslen(content) > 1) {
+		content[wcslen(content) - 2] = _T('|');
+		content[wcslen(content) - 1] = _T('\0');
+	}
+}
+
+//发送注册请求
+void registerSystem::sendRegisterRequest()
+{
+	PDU* pdu = mkPDU(64);
+	pdu->msgType = ENUM_MSG_REGIST_REQUEST;
+	wcstombs(pdu->msg, m_account, 32);
+	wcstombs(pdu->msg + 32, m_pwd, 32);
+	wcstombs((char*)pdu->mainMsg, m_email, 32);
+	wcstombs((char*)pdu->mainMsg+32, m_verificationCode, 32);
+	std::cout << pdu->msgLen <<"|"<< (char*)(pdu->mainMsg) + 32 << "|" << sizeof(*pdu) << std::endl;
+	send(m_csock, (char*)pdu, pdu->msgLen + sizeof(PDU), 0);
+	free(pdu);
+}
+
+//发送获取验证码请求
+void registerSystem::sendGetVerificationCodeRequest()
+{
+	if (wcslen(m_email) == 0) {
+		
+		MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("邮件地址不能为空！"), NULL, NULL);
+		return;
+	}
+	PDU pdu;
+	pdu.msgType = ENUM_MSG_GET_VERIFICATION_CODE_REQUEST;
+	wcstombs(pdu.msg, m_email, 32);
+	send(m_csock, (char*)&pdu, sizeof(pdu), 0);
 }
 
 

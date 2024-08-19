@@ -1,5 +1,13 @@
 #include"protocol.h"
 
+PDU* mkPDU(int msgLen)
+{
+	int pduLen = msgLen + sizeof(PDU);
+	PDU* pdu = (PDU*)malloc(pduLen);
+	pdu->msgLen = msgLen;
+	return pdu;
+}
+
 void init()
 {
 

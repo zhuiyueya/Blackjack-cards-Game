@@ -38,6 +38,27 @@ public:
 	//获取密码
 	wchar_t* getPwd();
 
+	//当切换为注册界面时的初始化
+	void initRegisterWindow();
+
+	//为鼠标点击的所属添加光标
+	void addCursor(wchar_t *content);
+
+	//为非鼠标点击的所属移除光标
+	void removeCursor(wchar_t* content);
+
+	//往content内添加新字符
+	void addNewChar(wchar_t* content,char newch);
+
+	//往content内移除旧字符
+	void delOldChar(wchar_t* content);
+
+	//发送注册请求
+	void sendRegisterRequest();
+
+	//发送获取验证码请求
+	void sendGetVerificationCodeRequest();
+
 private:
 	IMAGE m_bg;//背景图
 	wchar_t m_account[33] = {0};//存储账号
@@ -63,5 +84,39 @@ private:
 	
 	//是否处于输入密码状态
 	bool m_isInputPwd;
+
+	//当前窗口类别
+	windowstate m_windowState;
+
+	//注册按钮
+	Button m_registerBtn;
+
+	//电子邮件输入框
+	Button m_emailInputBox;
+
+	//电子邮件输入框提示
+	Button m_emailInputTip;
+
+	//验证码输入框
+	Button m_verificationCodeInputBox;
+
+	//验证码输入框提示
+	Button m_verificationCodeInputTip;
+
+	//发送验证码按钮
+	Button m_sendVerificationCodeBtn;
+
+	//存储邮箱地址
+	wchar_t m_email[33] = {0};
+
+	//存储验证码
+	wchar_t m_verificationCode[33] = { 0 };
+
+	//是否正在输入邮件地址
+	bool m_isInputEmail;
+
+	//是否正在输入验证码
+	bool m_isInputVerificationCode;
+
 };
 
