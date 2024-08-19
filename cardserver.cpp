@@ -29,7 +29,18 @@ struct PDU {
 	int cardId;
 	int msgType;
 	char msg[64];
+	int msgLen;
+	int mainMsg[];
 };
+
+PDU* mkPDU(int msgLen)
+{
+	int pduLen = msgLen + sizeof(PDU);
+	PDU* pdu = (PDU*)malloc(pduLen);
+	pdu->msgLen = msgLen;
+	return pdu;
+}
+
 enum procotol {
 	ENUM_MSG_LOGIN_REQUEST,//登录请求
 	ENUM_MSG_LOGIN_RESPOND,//登录回复
@@ -49,6 +60,8 @@ enum procotol {
 	ENUM_MSG_UPDATE_DOWNCOUNT_TIME_RESPOND,//倒计时更新通知回复
 	ENUM_MSG_CANCEL_MATCH_REQUEST,//取消匹配请求
 	ENUM_MSG_CANCEL_MATCH_RESPOND,//取消匹配回复
+	ENUM_MSG_GET_VERIFICATION_CODE_REQUEST,//获取验证码请求
+	ENUM_MSG_GET_VERIFICATION_CODE_RESPOND,//获取验证码回复
 };
 struct UserInfo{
 	struct epoll_event event;
@@ -424,14 +437,74 @@ void handle_login(PDU*pdu,struct epoll_event *ev){
 	send(ev->data.fd,(char*)&respdu,sizeof(respdu),0);
 }
 
+
+//在数据库中添加用户的用户账号和密码
+bool addUser(PDU*pdu,char *mainMsg){
+	char sentence[256]={0};
+	sprintf(sentence,"insert into user(account,pwd,email) values('%s','%s','%s');",pdu->msg,pdu->msg+32,mainMsg);
+	std::cout<<sentence<<std::endl;
+	//该函数执行成功时返回0
+        bool ret=mysql_query(&sql,sentence);
+	//添加成功
+	if(!ret){
+		std::cout<<"添加成功\n";
+		return true;
+	}
+	std::cout<<"添加失败\n";
+	return false;
+}
+
+//处理注册请求
+void handle_register(int fd,PDU*pdu,char*mainMsg){
+	int ret=addUser(pdu,mainMsg);
+	PDU respdu;
+	respdu.msgType=ENUM_MSG_REGIST_RESPOND;
+	if(ret){
+	}else{
+	}
+	send(fd,(char*)&respdu,sizeof(respdu),0);
+}
+int  produceVerificationCode(char *code){
+	int ret=rand()%8999+1000;
+	sprintf(code,"%d",ret);
+	return ret;
+}
+//处理验证码
+void handle_verification(PDU *pdu,int fd){
+	char code[5];
+	produceVerificationCode(code);
+	
+		
+}
+
 //处理客户端请求
 void handle_recv(struct epoll_event *ev){
+	PDU*recvpdu=mkPDU(64);
+
+	read(ev->data.fd,(void*)recvpdu,sizeof(PDU)+64);
 	PDU pdu;
-	read(ev->data.fd,(void*)&pdu,sizeof(pdu));
+	pdu.msgType=recvpdu->msgType;
+	memcpy((void*)pdu.msg,(void*)recvpdu->msg,sizeof(pdu.msg));
+	pdu.player=recvpdu->player;
+	pdu.cardId=recvpdu->cardId;
+	pdu.msgLen=recvpdu->msgLen;
+	
+	//PDU pdu;
+	//read(ev->data.fd,(void*)&pdu,sizeof(pdu));
 		
 	if(pdu.msgType==ENUM_MSG_LOGIN_REQUEST){
 		handle_login(&pdu,ev);
 		std::cout<<pdu.msg<<"  --  coming"<<std::endl;
+	}
+	else if(pdu.msgType==ENUM_MSG_GET_VERIFICATION_CODE_REQUEST){
+
+	}
+	else if(pdu.msgType==ENUM_MSG_REGIST_REQUEST){
+		char *mainMsg=(char*)malloc(pdu.msgLen);
+		memcpy((void*)mainMsg,(void*)recvpdu->mainMsg,sizeof(mainMsg));
+		//read(ev->data.fd,(void*)mainMsg,sizeof(mainMsg));
+		handle_register(ev->data.fd,&pdu,mainMsg);
+		free(mainMsg);
 	}
 	else if(pdu.msgType==ENUM_MSG_MATCH_REQUEST){
 		//将新到的匹配用户加入队列
@@ -480,6 +553,8 @@ void handle_recv(struct epoll_event *ev){
 	else{
 		std::cout<<"else\n";
 	}
+
+	free(recvpdu);
 }
 
 //捕捉子进程结束的信号，对其进行回收
