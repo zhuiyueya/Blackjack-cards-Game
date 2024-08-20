@@ -14,6 +14,15 @@
 #include<sys/wait.h>
 #include<time.h>
 #include<mysql.h>
+#include<hiredis/hiredis.h>
+
+#define REDIS_SERVER_IP "127.0.0.1"//redis服务器IP地址
+#define REDIS_SERVER_PORT 6379  //redi服务器端口
+#define VERIFI_CODE_EXPIRE_TIME_S 60 //验证码过期时间/秒
+
+#define REGISTER_SUCCEED "register succeed"//注册成功
+#define REGISTER_FAILED "register failed"//注册失败
+
 #define PLAYER_NUM 3
 #define MATCH_SUCCEED "match succeed"
 #define MATCH_FAILED "match fail"
@@ -29,7 +38,18 @@ struct PDU {
 	int cardId;
 	int msgType;
 	char msg[64];
+	int msgLen;
+	int mainMsg[];
 };
+
+PDU* mkPDU(int msgLen)
+{
+	int pduLen = msgLen + sizeof(PDU);
+	PDU* pdu = (PDU*)malloc(pduLen);
+	pdu->msgLen = msgLen;
+	return pdu;
+}
+
 enum procotol {
 	ENUM_MSG_LOGIN_REQUEST,//登录请求
 	ENUM_MSG_LOGIN_RESPOND,//登录回复
@@ -49,6 +69,8 @@ enum procotol {
 	ENUM_MSG_UPDATE_DOWNCOUNT_TIME_RESPOND,//倒计时更新通知回复
 	ENUM_MSG_CANCEL_MATCH_REQUEST,//取消匹配请求
 	ENUM_MSG_CANCEL_MATCH_RESPOND,//取消匹配回复
+	ENUM_MSG_GET_VERIFICATION_CODE_REQUEST,//获取验证码请求
+	ENUM_MSG_GET_VERIFICATION_CODE_RESPOND,//获取验证码回复
 };
 struct UserInfo{
 	struct epoll_event event;
@@ -72,6 +94,8 @@ tm beginTime;
 int turn=0;//默认一局中第一个开始匹配的先抽牌
 //数据库
 MYSQL sql;
+//redis库，存储邮箱对应验证码
+redisContext *redisC;
 
 bool used_card[54];
 char user_name[3][32];
@@ -424,14 +448,111 @@ void handle_login(PDU*pdu,struct epoll_event *ev){
 	send(ev->data.fd,(char*)&respdu,sizeof(respdu),0);
 }
 
+
+//在数据库中添加用户的用户账号和密码
+bool addUser(PDU*pdu,char *mainMsg){
+	char sentence[256]={0};
+	sprintf(sentence,"insert into user(account,pwd,email) values('%s','%s','%s');",pdu->msg,pdu->msg+32,mainMsg);
+	std::cout<<sentence<<std::endl;
+	//该函数执行成功时返回0
+        bool ret=mysql_query(&sql,sentence);
+	//添加成功
+	if(!ret){
+		std::cout<<"添加成功\n";
+		return true;
+	}
+	std::cout<<"添加失败\n";
+	return false;
+}
+
+//处理注册请求
+void handle_register(int fd,PDU*pdu,char*mainMsg){
+	PDU respdu;
+	respdu.msgType=ENUM_MSG_REGIST_RESPOND;
+	//判断验证码是否正确
+	char comma[128]={0};
+	sprintf(comma,"GET %s",mainMsg);
+	redisReply *reply=(redisReply*)redisCommand(redisC,comma);
+	std::cout<<comma<<reply->type<<std::endl;
+	if(reply && reply->type == REDIS_REPLY_STRING){
+		//std::cout<<"verifiCode--:"<<mainMsg+32<<reply->str<<std::endl;
+		if(strcmp(mainMsg+32,reply->str)==0){
+
+			int ret=addUser(pdu,mainMsg);
+			strcpy(respdu.msg,REGISTER_SUCCEED);
+			send(fd,(char*)&respdu,sizeof(respdu),0);
+			return;
+		}
+	}
+	freeReplyObject(reply);
+	strcpy(respdu.msg,REGISTER_FAILED);
+	send(fd,(char*)&respdu,sizeof(respdu),0);
+
+}
+int  produceVerificationCode(char *code){
+	int ret=rand()%8999+1000;
+	sprintf(code,"%d",ret);
+	return ret;
+}
+//处理验证码
+void handle_verification(PDU *pdu,int fd){
+	char code[5];
+	produceVerificationCode(code);
+	//向redis服务器中添加邮箱地址与对应验证码
+	char comma[128]={0};
+	sprintf(comma,"SET %s %s",pdu->msg,code);
+	redisReply *reply=(redisReply*)redisCommand(redisC,comma);
+	freeReplyObject(reply);
+	//设置过期
+	memset(comma,'0',sizeof(comma));
+	sprintf(comma,"EXPIRE %s %d",pdu->msg,VERIFI_CODE_EXPIRE_TIME_S);
+	reply=(redisReply*)redisCommand(redisC,comma);
+	freeReplyObject(reply);
+
+	int ret=fork();
+	//开启子进程且让其执行发送验证码的程序
+	if(ret==0){
+		ret=execl("./sendVCode","./sendVCode",pdu->msg,code,NULL);
+		if(ret==-1){
+			perror("execl error");
+			exit(1);
+		}
+	}
+		
+}
+
 //处理客户端请求
 void handle_recv(struct epoll_event *ev){
+/*
+	PDU*recvpdu=mkPDU(64);
+	read(ev->data.fd,(void*)recvpdu,sizeof(PDU)+64);
+	PDU pdu;
+	pdu.msgType=recvpdu->msgType;
+	memcpy((void*)pdu.msg,(void*)recvpdu->msg,sizeof(pdu.msg));
+	pdu.player=recvpdu->player;
+	pdu.cardId=recvpdu->cardId;
+	pdu.msgLen=recvpdu->msgLen;
+	std::cout<<recvpdu->mainMsg<<std::endl;
+*/	
 	PDU pdu;
 	read(ev->data.fd,(void*)&pdu,sizeof(pdu));
 		
 	if(pdu.msgType==ENUM_MSG_LOGIN_REQUEST){
 		handle_login(&pdu,ev);
 		std::cout<<pdu.msg<<"  --  coming"<<std::endl;
+	}
+	else if(pdu.msgType==ENUM_MSG_GET_VERIFICATION_CODE_REQUEST){
+		handle_verification(&pdu,ev->data.fd);
+
+	}
+	else if(pdu.msgType==ENUM_MSG_REGIST_REQUEST){
+		char *mainMsg=(char*)malloc(pdu.msgLen);
+		//memcpy((void*)mainMsg,(void*)recvpdu->mainMsg,sizeof(mainMsg));
+		//注意：sizeof(mainMsg)返回了8,即指针大小
+		int ret=read(ev->data.fd,(void*)mainMsg,pdu.msgLen);
+		//std::cout<<mainMsg<<"|"<<mainMsg+32<<"|"<<ret<<"|"<<pdu.msgLen<<"|"<<sizeof(mainMsg)<<std::endl;
+		handle_register(ev->data.fd,&pdu,mainMsg);
+		free(mainMsg);
 	}
 	else if(pdu.msgType==ENUM_MSG_MATCH_REQUEST){
 		//将新到的匹配用户加入队列
@@ -480,6 +601,8 @@ void handle_recv(struct epoll_event *ev){
 	else{
 		std::cout<<"else\n";
 	}
+
+	//free(recvpdu);
 }
 
 //捕捉子进程结束的信号，对其进行回收
@@ -520,6 +643,9 @@ int main(){
                 mysql_close(&sql);
         	return 1;
         }
+
+	//创建redis连接
+	redisC=redisConnect(REDIS_SERVER_IP,REDIS_SERVER_PORT);
 
 	srand(time(0));
 	memset(used_card,0,54);
@@ -585,6 +711,9 @@ int main(){
 	}
 	close(efd);
 	close(ssock);
+	//清除redis连接
+	redisFree(redisC);
+
 	//关闭数据库
         mysql_close(&sql);
 
