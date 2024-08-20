@@ -4,9 +4,21 @@
 #include<string>
 #include <locale>
 #include <codecvt>
+
 //∆Ù∂Ø”Œœ∑
 void StartGame();
 int main1() {
+	wchar_t a[32] = _T("323234353");
+	wchar_t n[32] = _T("asjdh12");
+	
+	Setting s(NULL,a,n);
+	initgraph(WIDTH, HEIGHT);
+	setbkmode(TRANSPARENT);
+	BeginBatchDraw();
+	s.play();
+	return 0;
+}
+int main2() {
 	registerSystem sys;
 	initgraph(WIDTH, HEIGHT);
 	setbkmode(TRANSPARENT);
@@ -19,14 +31,15 @@ int main1() {
 		Sleep(60);
 	}
 }
-int main() {
 
+int main() {
+	
 	srand(time(0));
 	Control c;
 	initgraph(WIDTH, HEIGHT);
 	setbkmode(TRANSPARENT);
 	settextstyle(50, 0, _T("Œ¢»Ì—≈∫⁄"));
-	c.drawStartGameUI();
+	c.drawMainWindowUI();
 	c.connectToServer();
 	c.login();
 	settextstyle(50, 0, _T("Œ¢»Ì—≈∫⁄"));
@@ -34,8 +47,8 @@ int main() {
 	while (1) {
 		cleardevice();
 		c.mainWindowMouseEvent();
-		c.handleRecv();
-		c.drawStartGameUI();
+		c.handleMainWindowRecv();
+		c.drawMainWindowUI();
 		FlushBatchDraw();
 		Sleep(60);
 	}
@@ -46,7 +59,7 @@ int main() {
 void StartGame() {
 	
 	
-	srand(time(0));
+	/*srand(time(0));
 	Control c;
 	initgraph(WIDTH, HEIGHT);
 	c.init();
@@ -64,7 +77,7 @@ void StartGame() {
 		FlushBatchDraw();
 		Sleep(60);
 	}
-	EndBatchDraw();
+	EndBatchDraw();*/
 	
 	
 }

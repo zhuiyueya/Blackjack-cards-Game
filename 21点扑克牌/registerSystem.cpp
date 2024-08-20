@@ -60,24 +60,29 @@ registerSystem::registerSystem(SOCKET sock)
 	//初始化注册按钮
 	m_registerBtn = Button(accountX+ BTN_SIZE_300_40_W- BTN_SIZE_80_40_W, accountY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
-	//在点击了注册按钮后再进行初始化
-	
-	////电子邮件输入框
-	//Button m_emailInputBox;
 
-	////电子邮件输入框提示
-	//Button m_emailInputTip;
+	int beginX = m_pwdInputBox.beginX;
+	int beginY = m_pwdInputBox.beginY;
 
-	////验证码输入框
-	//Button m_verificationCodeInputBox;
+	//电子邮件输入框
+	beginY += BTN_SIZE_300_40_H * 2;
+	m_emailInputBox = Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
 
-	////验证码输入框提示
-	//Button m_verificationCodeInputTip;
+	//电子邮件输入框提示
+	beginX -= BTN_SIZE_80_40_W * 2;
+	m_emailInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
-	////发送验证码按钮
-	//Button m_sendVerificationCodeBtn;
+	//验证码输入框提示
+	beginY += BTN_SIZE_300_40_H * 2;
+	m_verificationCodeInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
+	//验证码输入框
+	beginX += BTN_SIZE_80_40_W * 2;
+	m_verificationCodeInputBox = Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
 
+	//发送验证码按钮
+	beginX += BTN_SIZE_300_40_W;
+	m_sendVerificationCodeBtn = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
 	m_isInputAccount = true;
 
@@ -92,6 +97,10 @@ registerSystem::registerSystem(SOCKET sock)
 	m_isInputVerificationCode = false;
 
 	m_isInputEmail = false;
+
+	m_RegisterWindowReturnBtn = Button(0, 0, BTN_SIZE_100_40_W, BTN_SIZE_100_40_H);
+
+	m_isVCodeCooldown = false;
 }
 
 
@@ -140,8 +149,33 @@ void registerSystem::draw()
 		//绘制验证码输入框提示
 		m_verificationCodeInputTip.draw(_T("验证码:"));
 
-		m_sendVerificationCodeBtn.draw(_T("发送"));
+		//修改发送验证码按钮显示内容
+		wchar_t cooldown[16] = {0};
+		if (m_isVCodeCooldown) {
+			std::future_status ret=m_future.wait_for(std::chrono::seconds(0));
+			if (ret== std::future_status::ready) {
 
+				m_countdownTime--;
+				if (m_countdownTime == 0) {//倒计时结束
+					m_isVCodeCooldown = false;
+				}
+				else {//倒计时未结束开启新一轮线程计时一秒
+					m_future = std::async(std::launch::async, &registerSystem::verifiCodeCountdown, this);
+				}
+
+				
+			}
+			swprintf(cooldown, _T("%d"), m_countdownTime);
+		}
+		else {
+			wcscpy(cooldown, _T("发送"));
+		}
+
+		//绘制发送验证码按钮
+		m_sendVerificationCodeBtn.draw(cooldown);
+
+		//绘制注册界面返回按钮
+		m_RegisterWindowReturnBtn.draw(_T("返回"));
 	}
 }
 
@@ -297,10 +331,25 @@ void registerSystem::mouseEvent()
 				}
 				//在注册账号界面点击了发送验证码按钮
 				else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_sendVerificationCodeBtn.beginX && mx< m_sendVerificationCodeBtn.endX &&
-					my>m_sendVerificationCodeBtn.beginY && my < m_sendVerificationCodeBtn.endY) {
+					my>m_sendVerificationCodeBtn.beginY && my < m_sendVerificationCodeBtn.endY&&!m_isVCodeCooldown) {
 						
-					sendGetVerificationCodeRequest();
+					if (sendGetVerificationCodeRequest()) {
+						m_countdownTime = VEIFI_CODE_EXPIRE_TIEM_S;
+						m_isVCodeCooldown = true;
+						m_future = std::async(std::launch::async, &registerSystem::verifiCodeCountdown, this);
+					}
+					
 				}
+				//在注册界面点击了返回按钮
+				else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_RegisterWindowReturnBtn.beginX && mx< m_RegisterWindowReturnBtn.endX &&
+					my>m_RegisterWindowReturnBtn.beginY && my < m_RegisterWindowReturnBtn.endY) {
+					resetLoginWindowSet();
+					m_windowState = WINDOW_STATE_LOGIN;
+
+				}
+
+
+
 			}
 		}
 		//事件为键盘事件时
@@ -475,9 +524,25 @@ void registerSystem::recvEvent()
 			if (strcmp(pdu.msg, LOGIN_SUCCEED) == 0) {
 				m_isConfirmSubmit = true;
 				std::cout << "登录成功\n";
+				mbstowcs(m_userName, pdu.msg + 32, 32);
+				std::wcout << "userName:" << m_userName << std::endl;
 			}
 			else if (strcmp(pdu.msg, LOGIN_FAILED) == 0) {
-				MessageBox(NULL, _T("登录失败:账号/密码错误！"), _T("登录"), MB_OK);
+				MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("登录失败:账号/密码错误！"), _T("登录"), MB_OK);
+			}
+			break;
+		}
+		case ENUM_MSG_REGIST_RESPOND:
+		{
+			if (strcmp(pdu.msg, REGISTER_SUCCEED)==0) {
+				MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("注册成功！"), _T("注册"), NULL);
+				resetLoginWindowSet();
+				m_windowState = WINDOW_STATE_LOGIN;
+			}
+			else if (strcmp(pdu.msg, REGISTER_FAILED) == 0) {
+				MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("注册失败！"), NULL, NULL);
+				resetLoginWindowSet();
+				m_windowState = WINDOW_STATE_LOGIN;
 			}
 			break;
 		}
@@ -543,34 +608,18 @@ wchar_t* registerSystem::getPwd()
 //当切换为注册界面时的初始化
 void registerSystem::initRegisterWindow()
 {
-	int beginX = m_pwdInputBox.beginX;
-	int beginY = m_pwdInputBox.beginY;
-
-	//电子邮件输入框
-	beginY += BTN_SIZE_300_40_H*2;
-	m_emailInputBox = Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
-
-	//电子邮件输入框提示
-	beginX -= BTN_SIZE_80_40_W * 2;
-	m_emailInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
-
-	//验证码输入框提示
-	beginY += BTN_SIZE_300_40_H * 2;
-	m_verificationCodeInputTip = Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
-
-	//验证码输入框
-	beginX += BTN_SIZE_80_40_W * 2;
-	m_verificationCodeInputBox=Button(beginX, beginY, BTN_SIZE_300_40_W, BTN_SIZE_300_40_H);
-
-	//发送验证码按钮
-	beginX += BTN_SIZE_300_40_W;
-	m_sendVerificationCodeBtn= Button(beginX, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+	int beginX = m_verificationCodeInputBox.beginX;
+	int beginY = m_verificationCodeInputBox.beginY;
 
 	//注册按钮
 	beginY+= BTN_SIZE_300_40_H * 2;
-	beginX -= BTN_SIZE_300_40_W;
 	m_registerBtn = Button(beginX+ BTN_SIZE_300_40_W- BTN_SIZE_80_40_W, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
 
+	//清空存储的信息
+	wcsset(m_account, _T('\0'));
+	wcsset(m_pwd, _T('\0'));
+	wcsset(m_email, _T('\0'));
+	wcsset(m_verificationCode, _T('\0'));
 }
 
 //为鼠标点击的所属添加光标
@@ -641,18 +690,66 @@ void registerSystem::sendRegisterRequest()
 }
 
 //发送获取验证码请求
-void registerSystem::sendGetVerificationCodeRequest()
+bool registerSystem::sendGetVerificationCodeRequest()
 {
-	if (wcslen(m_email) == 0) {
+	if (wcslen(m_email) <= 0) {
 		
 		MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("邮件地址不能为空！"), NULL, NULL);
-		return;
+		return false;
 	}
+	if (wcslen(m_email) <= 7|| wcscmp(_T("@qq.com"), m_email + (wcslen(m_email) - 7)) != 0) {
+		MessageBox(FindWindowW(NULL, _T("21点扑克牌")), _T("请输入正确的邮件地址格式(以@qq.com结尾)！"), NULL, NULL);
+		return false;
+	}
+	
+
 	PDU pdu;
 	pdu.msgType = ENUM_MSG_GET_VERIFICATION_CODE_REQUEST;
 	wcstombs(pdu.msg, m_email, 32);
 	send(m_csock, (char*)&pdu, sizeof(pdu), 0);
+	return true;
 }
+
+//从注册界面返回登录界面时重置一些设置
+void registerSystem::resetLoginWindowSet()
+{
+	int beginX = m_pwdInputBox.beginX;
+	int beginY = m_pwdInputBox.beginY;
+
+	//注册按钮
+	beginY += BTN_SIZE_300_40_H * 2;
+	m_registerBtn = Button(beginX + BTN_SIZE_300_40_W - BTN_SIZE_80_40_W, beginY, BTN_SIZE_80_40_W, BTN_SIZE_80_40_H);
+
+	//退出注册界面时设置为非冷却期，确保再次进入注册界面时未进行倒计时
+	m_isVCodeCooldown = false;
+}
+
+//能再次发送验证码的倒计时
+int registerSystem::verifiCodeCountdown()
+{
+	/*for (int i = 0; i < VEIFI_CODE_EXPIRE_TIEM_S; i++) {
+		
+		
+		m_countdownTime--;
+		
+		std::cout << m_countdownTime << std::endl;
+		
+	}*/
+	Sleep(1000);
+	
+	//m_isVCodeCooldown = false;
+	return 0;
+}
+
+wchar_t* registerSystem::getUserName()
+{
+	return m_userName;
+}
+
+
+
+
+
 
 
 

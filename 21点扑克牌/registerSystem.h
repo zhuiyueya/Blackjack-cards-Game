@@ -4,9 +4,12 @@
 #include<winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
 #include<iostream>
+#include<thread>
+#include<future>
+#include <condition_variable>
 class registerSystem
 {
-
+	
 public:
 	//构造函数
 	registerSystem();
@@ -57,8 +60,16 @@ public:
 	void sendRegisterRequest();
 
 	//发送获取验证码请求
-	void sendGetVerificationCodeRequest();
+	bool sendGetVerificationCodeRequest();
 
+
+	//从注册界面返回登录界面时重置一些设置
+	void resetLoginWindowSet();
+
+	//能再次发送验证码的倒计时
+	int verifiCodeCountdown();
+
+	wchar_t* getUserName();
 private:
 	IMAGE m_bg;//背景图
 	wchar_t m_account[33] = {0};//存储账号
@@ -118,5 +129,23 @@ private:
 	//是否正在输入验证码
 	bool m_isInputVerificationCode;
 
+	//注册界面返回按钮
+	Button m_RegisterWindowReturnBtn;
+
+	//倒计时
+	int m_countdownTime;
+
+	//是否处于发送验证码冷却器
+	bool m_isVCodeCooldown;
+
+	//发送验证码冷却定时线程的future
+	std::future<int>m_future;
+
+	//存储用户游戏名
+	wchar_t m_userName[32];
 };
+
+
+
+
 

@@ -27,3 +27,9 @@ void Button::draw(LPCTSTR text, enum BTNTEXTSTYLE type)
 	fillroundrect(beginX, beginY, endX, endY , 5, 5);
 	outtextxy(tx, ty, text);
 }
+
+void Button::draw(IMAGE* img)
+{
+	transparentImage(NULL, beginX, beginY , img, BLACK);
+	//putimage(, (endX - beginX), (endY - beginY), img, img->getwidth(), img->getheight());
+}
