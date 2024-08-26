@@ -2,6 +2,7 @@
 #include"protocol.h"
 #include"OptionBtn.h"
 #include"MyMessageBox.h"
+#include"MyInputBox.h"
 #include<winsock2.h>
 #include<vector>
 #pragma comment(lib,"ws2_32.lib")

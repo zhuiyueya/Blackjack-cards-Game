@@ -184,6 +184,7 @@ void registerSystem::mouseEvent()
 {
 	ExMessage msg;
 	while (peekmessage(&msg)) {
+		
 		if (msg.message == WM_LBUTTONDOWN) {
 			int mx = msg.x;
 			int my = msg.y;
@@ -352,8 +353,10 @@ void registerSystem::mouseEvent()
 
 			}
 		}
+		
 		//事件为键盘事件时
 		else if (msg.message == WM_CHAR) {
+			std::cout << 1;
 			//正在输入账号
 			if (m_isInputAccount) {
 				//输入为回退(backspace)时
@@ -649,7 +652,7 @@ void registerSystem::removeCursor(wchar_t* content)
 }
 
 //往content内添加新字符
-void registerSystem::addNewChar(wchar_t* content, char newch)
+void registerSystem::addNewChar(wchar_t* content, TCHAR newch)
 {
 	int maxlength=31;
 	

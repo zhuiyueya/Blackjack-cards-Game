@@ -71,6 +71,8 @@
 #define VERIFI_CODE_TIMER_ID 100 //发送验证码冷却的定时器ID
 #define VEIFI_CODE_EXPIRE_TIEM_S 60 //验证码过期时间，秒
 
+
+
 //协议传输单元
 struct PDU {
 	int player;
@@ -114,6 +116,9 @@ enum procotol {
 
 	ENUM_MSG_CHANGE_USERNAME_REQUEST,//修改用户名请求
 	ENUM_MSG_CHANGE_USERNAME_RESPOND,//修改用户名回答
+
+	ENUM_MSG_SEND_MESSAGE_REQUEST,//发送消息请求
+	ENUM_MSG_SEND_MESSAGE_RESPOND,//发送消息回复
 };
 //当前所处界面状态
 enum windowstate {

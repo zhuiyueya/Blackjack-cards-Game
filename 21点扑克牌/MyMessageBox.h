@@ -17,7 +17,7 @@ public:
 	MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK);
 	~MyMessageBox();
 	int play();
-private:
+protected:
 	void draw();
 	void inputEvent();
 	
@@ -31,5 +31,6 @@ private:
 	std::vector<int>contentSplitPoint;//存储不同行的在content成员变量中的起始位置的偏移量
 	bool isQuit;//是否关闭窗口
 	int clickedBtnType;//被点击的按钮类型，对应于MyMessageBoxType
+	IMAGE bgImg;
 };
 

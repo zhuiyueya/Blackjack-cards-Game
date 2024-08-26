@@ -54,6 +54,7 @@ Control::Control()
 	m_settingBtn = Button(WIDTH - BTN_SIZE_SETTING_W,0, BTN_SIZE_SETTING_W, BTN_SIZE_SETTING_H);
 		
 	loadimage(&m_settingImg, _T("./设置.png"), BTN_SIZE_SETTING_W, BTN_SIZE_SETTING_H);
+
 }
 
 //游戏初始化
@@ -71,6 +72,8 @@ void Control::init()
 
 	//可以防止有其他玩家未连接成功时的一瞬玩家快速点击造成的取牌
 	m_nowTurn = -1;
+
+	//m_chat = ChatModule(gameSock);
 }
 
 //游戏界面绘制
@@ -178,7 +181,7 @@ void Control::draw()
 	//绘制返回按钮
 	button(0, 0, _T("返回"));
 
-	
+	//m_chat.draw();
 }
 
 //生成随机卡牌-暂废弃
@@ -240,6 +243,7 @@ void Control::mouseEvent()
 				match();
 			}*/
 		}
+		//m_chat.inputEvent(&msg);
 	}
 }
 
@@ -612,9 +616,11 @@ void Control::gameRecvEvent()
 	else if (pdu.msgType == ENUM_MSG_GAMEOVER_NOTIFY) {//游戏结束或终止通知
 		if (strcmp(pdu.msg, GAME_INTERRUPT) == 0)//有玩家中途退出的情况
 		{
-			closesocket(gameSock);//关闭与服务器子线程游戏服务器的连接
+			std::cout << "游戏结束，关闭连接" << std::endl;
 
-			myMessageBox(NULL, _T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"));
+			closesocket(gameSock);//关闭与服务器子线程游戏服务器的连接
+			MessageBox(NULL, _T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"), _T("异常"), NULL);
+			myMessageBox(_T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"),_T("异常"));
 
 			m_isQuitGame = true;
 		}
@@ -631,7 +637,8 @@ void Control::gameRecvEvent()
 			}
 			wchar_t sequence[64] = { 0 };
 			swprintf(sequence, _T("游戏结束\n %s 赢了\n(点击确认退出当局游戏)"), winnerName);
-			myMessageBox(_T("游戏结束"), sequence);
+			//MessageBox(NULL, sequence, _T("游戏结束"), NULL);
+			myMessageBox(sequence, _T("游戏结束"));
 
 			m_isQuitGame = true;
 		}
@@ -644,6 +651,10 @@ void Control::gameRecvEvent()
 		time(&nowTime);
 		localtime_s(&beginP, &nowTime);
 	}
+	else if (pdu.msgType == ENUM_MSG_SEND_MESSAGE_RESPOND) {
+		//m_chat.recvEvent(&pdu);
+	}
+
 }
 
 //倒计时
