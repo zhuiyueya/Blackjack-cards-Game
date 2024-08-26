@@ -11,6 +11,8 @@
 #define BTN_CONTENT_MIDDLE_MARGIN 20//按钮与内容之间的间隔
 MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
 {
+	loadimage(&bgImg, _T("./background-1.png"));
+
 	setfillcolor(WHITE);
 	
 	settextcolor(BLACK);
@@ -77,6 +79,7 @@ MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t*
 
 MyMessageBox::MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
 {
+	loadimage(&bgImg, _T("./background-1.png"));
 
 	setfillcolor(WHITE);
 
@@ -121,7 +124,7 @@ MyMessageBox::MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int m
 	switch (messageBoxType) {
 		case MMBT_OK:
 		{
-			OptionBtn btn(endX - BTN_WIDTH - RIGHT_MARGIN, beginY + BTN_HEIGHT + textheight(ptitle) + TOP_MARGIN + MIDDLE_LINE_MARGIN, BTN_WIDTH, BTN_HEIGHT, MMBT_OK, _T("确定"));
+			OptionBtn btn(endX - BTN_WIDTH - RIGHT_MARGIN, beginY  + textheight(ptitle) + TOP_MARGIN + MIDDLE_LINE_MARGIN, BTN_WIDTH, BTN_HEIGHT, MMBT_OK, _T("确定"));
 			buttons.push_back(btn);
 			break;
 		}
@@ -141,6 +144,7 @@ MyMessageBox::~MyMessageBox()
 
 void MyMessageBox::draw()
 {
+	//putimage(0, 0, &bgImg);
 	//背景板
 	fillroundrect(beginX, beginY, endX, endY, 10, 10);
 
@@ -193,10 +197,15 @@ void MyMessageBox::inputEvent()
 
 int MyMessageBox::play()
 {
+	//EndBatchDraw();
 	draw();
+	FlushBatchDraw();
 	while (!isQuit) {
 		inputEvent();
+		Sleep(60);
 	}
+	//BeginBatchDraw();
+	setfillstyle(BS_NULL);
 	return clickedBtnType;
 }
 

@@ -1,4 +1,5 @@
 #include "Setting.h"
+
 #include<iostream>
 Setting::Setting()
 {
@@ -71,7 +72,7 @@ void Setting::draw()
 
 }
 
-//游戏主循环
+//主循环
 void Setting::play()
 {
 	m_isQuit = false;
@@ -90,6 +91,7 @@ void Setting::inputEvent()
 {
 	ExMessage msg;
 	while (peekmessage(&msg)) {
+		
 		if (msg.message == WM_LBUTTONDOWN) {
 			int mx = msg.x;
 			int my = msg.y;
@@ -115,7 +117,7 @@ void Setting::inputEvent()
 					}
 					//点击了修改密码按钮
 					else if (mx > m_changePwdBtn.beginX && mx< m_changePwdBtn.endX && my>m_changePwdBtn.beginY && my < m_changePwdBtn.endY) {
-
+						
 					}
 				}
 				case ENUM_OPTION_BTN_LABEL_VOLUMN:
@@ -137,7 +139,11 @@ void Setting::handleRecv()
 	switch (pdu.msgType) {
 		case ENUM_MSG_CHANGE_USERNAME_RESPOND:
 		{
-			myMessageBox(_T("昵称"), _T("修改成功！"));
+			//防止进入输入新昵称循环中背景变为纯黑色
+			draw();
+			setfillstyle(BS_SOLID);
+			myMessageBox( _T("修改成功！"), _T("昵称"));
+			setfillstyle(BS_NULL);//设置为透明，即绘制图形时不填充
 			mbstowcs(m_userName, pdu.msg, 32);
 			break;
 		}
@@ -151,11 +157,24 @@ void Setting::handleRecv()
 //发送修改昵称请求
 void Setting::sendChangeUserName()
 {
-	wchar_t newName[32];
-	InputBox(newName, 32, _T("请输入新昵称:"));
+	//防止进入输入新昵称循环中背景变为纯黑色
+	draw();
+
+	//EndBatchDraw();
+	setfillstyle(BS_SOLID);
+	wchar_t* newName = new wchar_t[32];
+	wchar_t* label = new wchar_t[10];
+	wcscpy(label, _T("昵称:"));
+	myInputBox(_T("请输入新昵称:"), _T("修改昵称"), MMBT_OK, &label, &newName, 1, { 32 });
+	setfillstyle(BS_NULL);//设置为透明，即绘制图形时不填充
+	delete[]label;
+	
+
 	PDU pdu;
 	pdu.msgType = ENUM_MSG_CHANGE_USERNAME_REQUEST;
 	wcstombs(pdu.msg, m_account, 32);
 	wcstombs(pdu.msg + 32, newName, 32);
 	send(m_sock, (char*)&pdu, sizeof(pdu), 0);
+
+	delete[]newName;
 }

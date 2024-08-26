@@ -51,7 +51,7 @@ public:
 	void removeCursor(wchar_t* content);
 
 	//ÍùcontentÄÚÌí¼ÓĞÂ×Ö·û
-	void addNewChar(wchar_t* content,char newch);
+	void addNewChar(wchar_t* content, TCHAR newch);
 
 	//ÍùcontentÄÚÒÆ³ı¾É×Ö·û
 	void delOldChar(wchar_t* content);

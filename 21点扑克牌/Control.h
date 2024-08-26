@@ -2,6 +2,7 @@
 #include"Card.h"
 #include"registerSystem.h"
 #include"Setting.h"
+#include"ChatModule.h"
 #include<Windows.h>
 #include<winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
@@ -48,6 +49,9 @@ private:
 
 	//设置图标
 	IMAGE m_settingImg;
+
+	//聊天类
+	ChatModule *m_chat;
 
 public:
 
