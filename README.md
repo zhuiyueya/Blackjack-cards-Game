@@ -1,7 +1,9 @@
 # 21点扑克牌
 
-#cardserver文件为服务端，需要在linux下运行
+#cardserver，sendVCode文件为服务端，需要在linux下运行
 
 #其余代码文件为客户端，需要在windows环境中运行
 
 #注意：下载完成后需修改客户端中的服务器IP地址
+#      需要配置在自己电脑中配置mysql服务器，且修改账号，密码等对应宏
+#      需配置redis服务器

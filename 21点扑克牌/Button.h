@@ -15,5 +15,7 @@ public:
 	int endY;//∞¥≈•÷’÷πY
 	//ªÊ÷∆∞¥≈•
 	void draw(LPCTSTR text,enum BTNTEXTSTYLE type= BTN_TEXT_STYLE_MIDDLE);
+	void draw(IMAGE* img);
 };
+
 

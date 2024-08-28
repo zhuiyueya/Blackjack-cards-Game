@@ -129,17 +129,27 @@
   <ItemGroup>
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="Card.cpp" />
+    <ClCompile Include="ChatModule.cpp" />
     <ClCompile Include="Control.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MyInputBox.cpp" />
+    <ClCompile Include="MyMessageBox.cpp" />
+    <ClCompile Include="OptionBtn.cpp" />
     <ClCompile Include="protocol.cpp" />
     <ClCompile Include="registerSystem.cpp" />
+    <ClCompile Include="Setting.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
     <ClInclude Include="Card.h" />
+    <ClInclude Include="ChatModule.h" />
     <ClInclude Include="Control.h" />
+    <ClInclude Include="MyInputBox.h" />
+    <ClInclude Include="MyMessageBox.h" />
+    <ClInclude Include="OptionBtn.h" />
     <ClInclude Include="protocol.h" />
     <ClInclude Include="registerSystem.h" />
+    <ClInclude Include="Setting.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,6 +1,8 @@
 #pragma once
 #include"Card.h"
 #include"registerSystem.h"
+#include"Setting.h"
+#include"ChatModule.h"
 #include<Windows.h>
 #include<winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
@@ -13,7 +15,7 @@ private:
 	bool m_usedCard[54];
 	WSADATA wsadata;
 	SOCKET csock;
-	wchar_t m_userName[32];
+	wchar_t m_account[32];//用户账号
 	bool m_isQuitGame;
 	std::vector<std::vector<Card>>m_otherPlayerCard;
 	std::vector<std::string>m_otherPlayerName;
@@ -30,6 +32,27 @@ private:
 
 	//登录界面类
 	registerSystem m_loginSys;
+
+	wchar_t m_name[32];//玩家游戏名
+
+	//主界面显示用户名
+	Button m_userNameBox;
+
+	//匹配按钮字体大小
+	int m_matchBtnCharSize;
+
+	//设置--在login中登录完成后初始化
+	Setting m_setting;
+
+	//设置按钮
+	Button m_settingBtn;
+
+	//设置图标
+	IMAGE m_settingImg;
+
+	//聊天类
+	//ChatModule m_chat;
+
 public:
 
 	//登录系统
@@ -37,12 +60,13 @@ public:
 
 	Control();
 
-	//初始化
+	//游戏初始化
 	void init();
 	
+	//游戏绘制
 	void draw();
 
-	//开局随机给两张牌
+	//开局随机给两张牌-暂废弃
 	void randomCardDeal();
 
 	void getRandomCardFromServer();
@@ -50,6 +74,7 @@ public:
 	//鼠标事件
 	void mouseEvent();
 
+	//连接服务器
 	void connectToServer();
 
 	~Control();
@@ -64,7 +89,7 @@ public:
 	void sendUserNameToServer();
 
 	//处理接收服务器发送的数据
-	void handleRecv();
+	void handleMainWindowRecv();
 
 	//发送匹配请求
 	void match();
@@ -79,7 +104,7 @@ public:
 	void startGame();
 
 	//开始游戏界面
-	void drawStartGameUI();
+	void drawMainWindowUI();
 
 	//处理服务器对匹配请求的回复
 	bool handleMatch(PDU* pdu);
@@ -95,6 +120,10 @@ public:
 
 	//发送更新倒计时通知给服务器，以便服务器发送下一轮取牌方给所有同局玩家
 	void sendUpdateDowncountTimeNotify();
+
+	
+
+
 };
 
 
