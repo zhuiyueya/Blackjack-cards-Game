@@ -48,6 +48,9 @@
     <ClCompile Include="ChatModule.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Alpha.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Card.h">
@@ -78,6 +81,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ChatModule.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Alpha.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

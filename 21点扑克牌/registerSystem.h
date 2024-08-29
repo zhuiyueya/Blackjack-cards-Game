@@ -7,6 +7,7 @@
 #include<thread>
 #include<future>
 #include <condition_variable>
+#include"MyMessageBox.h"
 class registerSystem
 {
 	

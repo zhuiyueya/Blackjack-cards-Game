@@ -74,7 +74,7 @@ void Control::init()
 	//可以防止有其他玩家未连接成功时的一瞬玩家快速点击造成的取牌
 	m_nowTurn = -1;
 
-	m_chat =new ChatModule(gameSock);
+	m_chat =new ChatModule(gameSock,m_name);
 	
 }
 
@@ -622,6 +622,7 @@ void Control::gameRecvEvent()
 		{
 			std::cout << "游戏结束，关闭连接" << std::endl;
 
+			draw();
 			closesocket(gameSock);//关闭与服务器子线程游戏服务器的连接
 			//MessageBox(NULL, _T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"), _T("异常"), NULL);
 			myMessageBox(_T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"),_T("异常"));
@@ -642,6 +643,7 @@ void Control::gameRecvEvent()
 			wchar_t sequence[64] = { 0 };
 			swprintf(sequence, _T("游戏结束\n %s 赢了\n(点击确认退出当局游戏)"), winnerName);
 			//MessageBox(NULL, sequence, _T("游戏结束"), NULL);
+			draw();
 			myMessageBox(sequence, _T("游戏结束"));
 
 			m_isQuitGame = true;

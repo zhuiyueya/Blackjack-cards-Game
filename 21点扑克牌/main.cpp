@@ -4,6 +4,7 @@
 #include<string>
 #include <locale>
 #include <codecvt>
+#include"Alpha.h"
 #include"MyInputBox.h"
 //∆Ù∂Ø”Œœ∑
 void StartGame();
@@ -94,11 +95,15 @@ int main5() {
 	initgraph(WIDTH, HEIGHT);
 	IMAGE img;
 	loadimage(&img, _T("background-1.png"));
+	putimage(0, 0, &img);
+	rec(WIDTH - 100, HEIGHT - 100, WIDTH, HEIGHT, RGB(0,0, 0), 128);
+	while (1);
 	ChatModule c;
 	while (1) {
 		cleardevice();
 		putimage(0, 0, &img);
 		c.draw();
+		
 		ExMessage msg;
 		while (peekmessage(&msg)) {
 			c.inputEvent(&msg);
@@ -108,6 +113,7 @@ int main5() {
 		
 	}
 }
+
 int main(){
 	
 	srand(time(0));

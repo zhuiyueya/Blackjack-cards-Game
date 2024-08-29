@@ -531,21 +531,27 @@ void registerSystem::recvEvent()
 				std::wcout << "userName:" << m_userName << std::endl;
 			}
 			else if (strcmp(pdu.msg, LOGIN_FAILED) == 0) {
-				MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("µÇÂ¼Ê§°Ü:ÕËºÅ/ÃÜÂë´íÎó£¡"), _T("µÇÂ¼"), MB_OK);
+				draw();
+				myMessageBox(_T("µÇÂ¼Ê§°Ü:ÕËºÅ/ÃÜÂë´íÎó£¡"), _T("µÇÂ¼"));
+				//MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("µÇÂ¼Ê§°Ü:ÕËºÅ/ÃÜÂë´íÎó£¡"), _T("µÇÂ¼"), MB_OK);
 			}
 			break;
 		}
 		case ENUM_MSG_REGIST_RESPOND:
 		{
 			if (strcmp(pdu.msg, REGISTER_SUCCEED)==0) {
-				MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("×¢²á³É¹¦£¡"), _T("×¢²á"), NULL);
+				draw();
+				myMessageBox(_T("×¢²á³É¹¦£¡"), _T("×¢²á"));
+				//MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("×¢²á³É¹¦£¡"), _T("×¢²á"), NULL);
 				resetLoginWindowSet();
 				m_windowState = WINDOW_STATE_LOGIN;
 			}
 			else if (strcmp(pdu.msg, REGISTER_FAILED) == 0) {
-				MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("×¢²áÊ§°Ü£¡"), NULL, NULL);
-				resetLoginWindowSet();
-				m_windowState = WINDOW_STATE_LOGIN;
+				draw();
+				myMessageBox(_T("×¢²áÊ§°Ü£¡"), _T("×¢²á"));
+				//MessageBox(FindWindowW(NULL, _T("21µãÆË¿ËÅÆ")), _T("×¢²áÊ§°Ü£¡"), NULL, NULL);
+				//resetLoginWindowSet();
+				//m_windowState = WINDOW_STATE_LOGIN;
 			}
 			break;
 		}
