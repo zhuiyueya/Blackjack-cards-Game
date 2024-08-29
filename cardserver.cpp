@@ -246,6 +246,7 @@ void handleGameOver(){
 }
 
 
+<<<<<<< HEAD
 //在数据库中查找是否有用户登陆的用户账号和密码
 void getUserName(char*msg,char *nameBuf){
         MYSQL_RES*res;
@@ -254,11 +255,35 @@ void getUserName(char*msg,char *nameBuf){
 	sprintf(sentence,"select * from user where account='%s';",msg);
         mysql_query(&sql,sentence);
         res=mysql_store_result(&sql);
+=======
+//在数据库中查找msg存储账号对应的名称
+void getUserName(char*msg,char *nameBuf){
+        MYSQL_RES*res=nullptr;
+        MYSQL_ROW row;
+	char sentence[256]={0};
+	sprintf(sentence,"select * from user where account='%s';",msg);
+
+	 if (mysql_query(&sql, sentence)) {
+        	fprintf(stderr, "mysql_query() failed: %s\n", mysql_error(&sql));
+        	return;
+   	 }
+
+    	res = mysql_store_result(&sql);
+  	if (!res) {
+        	fprintf(stderr, "mysql_store_result() failed: %s\n", mysql_error(&sql));
+        	return;
+    	}
+
+>>>>>>> newBranch
 	//找到了该用户
         if(res->row_count>0){
 		row=mysql_fetch_row(res);
 		sprintf(nameBuf,"%s",row[2]);
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> newBranch
         mysql_free_result(res);
 }
 
@@ -377,6 +402,15 @@ void handleGameInterrupt(struct epoll_event *ev){
 
 //子进程-匹配成功后与客户端新建立连接并进行通信
 void gaming(){
+
+	//初始化与连接数据库
+        mysql_init(&sql);
+        if(!mysql_real_connect(&sql,"127.0.0.1","bamboo","bamboo","card",3306,NULL,0)){
+        	fprintf(stderr, "connection failed: %s\n", mysql_error(&sql));
+                mysql_close(&sql);
+        	return;
+        }
+
 	//取出匹配队列中的三个玩家信息
 	for(int i=0;i<3;i++){
 		strncpy(peerPlayerInfo[i].name,matchQ.front().name,32);
@@ -446,6 +480,10 @@ void gaming(){
 	epoll_ctl(efd,EPOLL_CTL_DEL,ssock,NULL);
 	close(efd);
 	close(ssock);
+
+	//关闭数据库
+        mysql_close(&sql);
+
 	exit(0);
 	
 }
@@ -461,14 +499,16 @@ bool findUser(char*msg,char *nameBuf){
         res=mysql_store_result(&sql);
 	//找到了该用户
         if(res->row_count>0){
+<<<<<<< HEAD
 		printf("找到了\n");
+=======
+>>>>>>> newBranch
 		row=mysql_fetch_row(res);
 		sprintf(nameBuf,"%s",row[2]);
         	mysql_free_result(res);
 		return true;
         }
         mysql_free_result(res);
-	printf("没找到该用户\n");
 	return false;
 }
 
@@ -494,9 +534,21 @@ bool addUser(PDU*pdu,char *mainMsg){
 	char name[32];
 	sprintf(name,"user%d",rand()%10000);
 	sprintf(sentence,"insert into user(account,pwd,name,email) values('%s','%s','%s','%s');",pdu->msg,pdu->msg+32,name,mainMsg);
+<<<<<<< HEAD
 	std::cout<<sentence<<std::endl;
+=======
+	//std::cout<<sentence<<std::endl;
+>>>>>>> newBranch
 	//该函数执行成功时返回0
         bool ret=mysql_query(&sql,sentence);
+
+	MYSQL_RES*res;
+        res=mysql_store_result(&sql);
+	if(res){
+		std::cout<<"res有的"<<std::endl;
+        	mysql_free_result(res);
+	}
+
 	//添加成功
 	if(!ret){
 		std::cout<<"添加成功\n";
@@ -571,6 +623,17 @@ void handle_changeUserName(char*msg,int fd){
 	char sequence[128];
 	sprintf(sequence,"UPDATE user SET name='%s' WHERE account='%s'",newName,account);
 	mysql_query(&sql,sequence);
+<<<<<<< HEAD
+=======
+
+	MYSQL_RES*res;
+        res=mysql_store_result(&sql);
+	if(res){
+		std::cout<<"res有的"<<std::endl;
+        	mysql_free_result(res);
+	}
+
+>>>>>>> newBranch
 	PDU respdu;
 	respdu.msgType=ENUM_MSG_CHANGE_USERNAME_RESPOND;
 	strcpy(respdu.msg,newName);
@@ -699,7 +762,7 @@ int main(){
 	//初始化与连接数据库
         mysql_init(&sql);
         if(!mysql_real_connect(&sql,"127.0.0.1","bamboo","bamboo","card",3306,NULL,0)){
-                std::cerr << "Connection failed: " << mysql_error(&sql) << std::endl;
+        	fprintf(stderr, "connection failed: %s\n", mysql_error(&sql));
                 mysql_close(&sql);
         	return 1;
         }
