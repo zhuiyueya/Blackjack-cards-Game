@@ -65,6 +65,7 @@ void ChatModule::inputEvent(ExMessage* msg)
 		if (m_isInputing) {//用户正在输入聊天消息
 			if (msg->ch == _T('\r')) {//输入回车
 				sendMessageToServer();
+				addTextToAllText(m_inputText);
 				m_isInputing = false;
 			}
 			else if (msg->ch == _T('\b')) {//输入backspace

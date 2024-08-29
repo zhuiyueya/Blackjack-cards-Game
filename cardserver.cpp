@@ -71,6 +71,10 @@ enum procotol {
 	ENUM_MSG_CANCEL_MATCH_RESPOND,//取消匹配回复
 	ENUM_MSG_GET_VERIFICATION_CODE_REQUEST,//获取验证码请求
 	ENUM_MSG_GET_VERIFICATION_CODE_RESPOND,//获取验证码回复
+	ENUM_MSG_CHANGE_USERNAME_REQUEST,//修改用户名请求
+	ENUM_MSG_CHANGE_USERNAME_RESPOND,//修改用户名回答
+	ENUM_MSG_SEND_MESSAGE_REQUEST,//发送消息请求
+	ENUM_MSG_SEND_MESSAGE_RESPOND,//发送消息回复
 };
 struct UserInfo{
 	struct epoll_event event;
@@ -241,6 +245,48 @@ void handleGameOver(){
 	}
 }
 
+
+<<<<<<< HEAD
+//在数据库中查找是否有用户登陆的用户账号和密码
+void getUserName(char*msg,char *nameBuf){
+        MYSQL_RES*res;
+        MYSQL_ROW row;
+	char sentence[128]={0};
+	sprintf(sentence,"select * from user where account='%s';",msg);
+        mysql_query(&sql,sentence);
+        res=mysql_store_result(&sql);
+=======
+//在数据库中查找msg存储账号对应的名称
+void getUserName(char*msg,char *nameBuf){
+        MYSQL_RES*res=nullptr;
+        MYSQL_ROW row;
+	char sentence[256]={0};
+	sprintf(sentence,"select * from user where account='%s';",msg);
+
+	 if (mysql_query(&sql, sentence)) {
+        	fprintf(stderr, "mysql_query() failed: %s\n", mysql_error(&sql));
+        	return;
+   	 }
+
+    	res = mysql_store_result(&sql);
+  	if (!res) {
+        	fprintf(stderr, "mysql_store_result() failed: %s\n", mysql_error(&sql));
+        	return;
+    	}
+
+>>>>>>> newBranch
+	//找到了该用户
+        if(res->row_count>0){
+		row=mysql_fetch_row(res);
+		sprintf(nameBuf,"%s",row[2]);
+        }
+<<<<<<< HEAD
+=======
+
+>>>>>>> newBranch
+        mysql_free_result(res);
+}
+
 //子进程-接受事件
 void gameRecvEvent(struct epoll_event*ev){
 	PDU pdu;
@@ -278,7 +324,9 @@ void gameRecvEvent(struct epoll_event*ev){
 					respdu.player=relation[turn][i];
 					for(int j=0;j<PLAYER_NUM;j++){
 						if(curfd!=peerPlayerInfo[j].event.data.fd){
-							strncpy(respdu.msg+index*32,peerPlayerInfo[j].name,32);
+							char nameBuf[32]={0};
+							getUserName(peerPlayerInfo[j].name,nameBuf);
+							strncpy(respdu.msg+index*32,nameBuf,32);
 							index++;
 						}
 					}
@@ -330,6 +378,15 @@ void gameRecvEvent(struct epoll_event*ev){
 			}
 			break;
 		}
+		case ENUM_MSG_SEND_MESSAGE_REQUEST:                 
+		{                         
+			PDU*respdu=mkPDU(pdu.msgLen);                         
+			recv(ev->data.fd,(void*)(respdu->mainMsg),pdu.msgLen,0);
+			respdu->msgType=ENUM_MSG_SEND_MESSAGE_RESPOND;
+			for(int i=0;i<PLAYER_NUM;i++){
+				send(peerPlayerInfo[i].event.data.fd,(char*)respdu,sizeof(PDU)+respdu->msgLen,0);
+			}
+		}
 		default:
 			break;
 	}
@@ -345,13 +402,22 @@ void handleGameInterrupt(struct epoll_event *ev){
 
 //子进程-匹配成功后与客户端新建立连接并进行通信
 void gaming(){
+
+	//初始化与连接数据库
+        mysql_init(&sql);
+        if(!mysql_real_connect(&sql,"127.0.0.1","bamboo","bamboo","card",3306,NULL,0)){
+        	fprintf(stderr, "connection failed: %s\n", mysql_error(&sql));
+                mysql_close(&sql);
+        	return;
+        }
+
 	//取出匹配队列中的三个玩家信息
 	for(int i=0;i<3;i++){
 		strncpy(peerPlayerInfo[i].name,matchQ.front().name,32);
 		matchQ.erase(matchQ.begin());
 		peerPlayerInfo[i].belongId=-1;//表未设置event,或未进入对局
 	}
-	//
+	//重置牌
 	memset(used_card,0,54);
 	int ssock=socket(AF_INET,SOCK_STREAM,0);
 	struct sockaddr_in saddr,caddr;
@@ -380,6 +446,9 @@ void gaming(){
 				//有问题等待处理，当一方客户端关闭时，应该让其他客户端也终止游戏
 				//std::cout<<"client close link or error\n";
 				for(int j=0;j<PLAYER_NUM;j++){
+					if(peerPlayerInfo[j].event.data.fd==events[i].data.fd){
+						std::cout<<"user quit:::::"<<peerPlayerInfo[j].name<<std::endl;
+					}
 					if(peerPlayerInfo[j].event.data.fd!=events[i].data.fd)
 					handleGameInterrupt(&peerPlayerInfo[j].event);
 					//将与客户端通信的fd从epoll树上摘除
@@ -411,37 +480,47 @@ void gaming(){
 	epoll_ctl(efd,EPOLL_CTL_DEL,ssock,NULL);
 	close(efd);
 	close(ssock);
+
+	//关闭数据库
+        mysql_close(&sql);
+
 	exit(0);
 	
 }
 
 //在数据库中查找是否有用户登陆的用户账号和密码
-bool findUser(PDU*pdu){
+bool findUser(char*msg,char *nameBuf){
         MYSQL_RES*res;
         MYSQL_ROW row;
 	char sentence[128]={0};
-	sprintf(sentence,"select * from user where account='%s' and pwd='%s';",pdu->msg,pdu->msg+32);
-	std::cout<<sentence<<std::endl;
+	sprintf(sentence,"select * from user where account='%s' and pwd='%s';",msg,msg+32);
+	//std::cout<<sentence<<std::endl;
         mysql_query(&sql,sentence);
         res=mysql_store_result(&sql);
 	//找到了该用户
         if(res->row_count>0){
+<<<<<<< HEAD
 		printf("找到了\n");
+=======
+>>>>>>> newBranch
+		row=mysql_fetch_row(res);
+		sprintf(nameBuf,"%s",row[2]);
         	mysql_free_result(res);
 		return true;
         }
         mysql_free_result(res);
-	printf("没找到该用户\n");
 	return false;
 }
 
 //处理登陆请求
 void handle_login(PDU*pdu,struct epoll_event *ev){
-	bool ret=findUser(pdu);
+	char nameBuf[32];
+	bool ret=findUser(pdu->msg,nameBuf);
 	PDU respdu;
 	respdu.msgType=ENUM_MSG_LOGIN_RESPOND;
 	if(ret){
 		strcpy(respdu.msg,LOGIN_SUCCEED);
+		strcpy(respdu.msg+32,nameBuf);
 	}else{
 		strcpy(respdu.msg,LOGIN_FAILED);
 	}
@@ -452,10 +531,24 @@ void handle_login(PDU*pdu,struct epoll_event *ev){
 //在数据库中添加用户的用户账号和密码
 bool addUser(PDU*pdu,char *mainMsg){
 	char sentence[256]={0};
-	sprintf(sentence,"insert into user(account,pwd,email) values('%s','%s','%s');",pdu->msg,pdu->msg+32,mainMsg);
+	char name[32];
+	sprintf(name,"user%d",rand()%10000);
+	sprintf(sentence,"insert into user(account,pwd,name,email) values('%s','%s','%s','%s');",pdu->msg,pdu->msg+32,name,mainMsg);
+<<<<<<< HEAD
 	std::cout<<sentence<<std::endl;
+=======
+	//std::cout<<sentence<<std::endl;
+>>>>>>> newBranch
 	//该函数执行成功时返回0
         bool ret=mysql_query(&sql,sentence);
+
+	MYSQL_RES*res;
+        res=mysql_store_result(&sql);
+	if(res){
+		std::cout<<"res有的"<<std::endl;
+        	mysql_free_result(res);
+	}
+
 	//添加成功
 	if(!ret){
 		std::cout<<"添加成功\n";
@@ -521,6 +614,32 @@ void handle_verification(PDU *pdu,int fd){
 		
 }
 
+//处理修改名字请求
+void handle_changeUserName(char*msg,int fd){
+	char newName[32];
+	char account[32];
+	strcpy(account,msg);
+	strcpy(newName,msg+32);
+	char sequence[128];
+	sprintf(sequence,"UPDATE user SET name='%s' WHERE account='%s'",newName,account);
+	mysql_query(&sql,sequence);
+<<<<<<< HEAD
+=======
+
+	MYSQL_RES*res;
+        res=mysql_store_result(&sql);
+	if(res){
+		std::cout<<"res有的"<<std::endl;
+        	mysql_free_result(res);
+	}
+
+>>>>>>> newBranch
+	PDU respdu;
+	respdu.msgType=ENUM_MSG_CHANGE_USERNAME_RESPOND;
+	strcpy(respdu.msg,newName);
+	send(fd,(char*)&respdu,sizeof(respdu),0);
+}
+
 //处理客户端请求
 void handle_recv(struct epoll_event *ev){
 /*
@@ -540,6 +659,10 @@ void handle_recv(struct epoll_event *ev){
 	if(pdu.msgType==ENUM_MSG_LOGIN_REQUEST){
 		handle_login(&pdu,ev);
 		std::cout<<pdu.msg<<"  --  coming"<<std::endl;
+	}
+	else if(pdu.msgType==ENUM_MSG_CHANGE_USERNAME_REQUEST)//修改名字请求
+	{
+		handle_changeUserName(pdu.msg,ev->data.fd);
 	}
 	else if(pdu.msgType==ENUM_MSG_GET_VERIFICATION_CODE_REQUEST){
 		handle_verification(&pdu,ev->data.fd);
@@ -639,7 +762,7 @@ int main(){
 	//初始化与连接数据库
         mysql_init(&sql);
         if(!mysql_real_connect(&sql,"127.0.0.1","bamboo","bamboo","card",3306,NULL,0)){
-                std::cerr << "Connection failed: " << mysql_error(&sql) << std::endl;
+        	fprintf(stderr, "connection failed: %s\n", mysql_error(&sql));
                 mysql_close(&sql);
         	return 1;
         }
