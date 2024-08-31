@@ -16,8 +16,28 @@
 #include<mysql.h>
 #include<hiredis/hiredis.h>
 
+
+//----------------------------需要修改的内容如下--------------------------
+
+
 #define REDIS_SERVER_IP "127.0.0.1"//redis服务器IP地址
 #define REDIS_SERVER_PORT 6379  //redi服务器端口
+
+#define MYSQL_SERVER_IP "127.0.0.1"//mysql服务器的ip地址
+#define MYSQL_SERVER_PORT 3306//mysql服务器端口
+#define MYSQL_SERVER_ACCOUNT "bamboo"//mysql服务器账号
+#define MYSQL_SERVER_PWD "bamboo"//mysql服务器密码
+#define MYSQL_SERVER_DATABASE_NAME "card"//mysql服务器用来存储用户信息的数据库名
+
+
+//----------------------------需要修改的内容如上--------------------------
+
+
+#define MAX_SERVER_WAIT_QUEUE_SIZE 10//连接请求队列的最大长度，listen的第二个参数
+
+#define MAX_EPOLL_WAIT_HANDLE_NUM_ONCE 1024//epoll_wait函数一次可以返回的最大事件数，为epoll_wait第三参数
+
+
 #define VERIFI_CODE_EXPIRE_TIME_S 60 //验证码过期时间/秒
 
 #define REGISTER_SUCCEED "register succeed"//注册成功
@@ -105,7 +125,7 @@ bool used_card[54];
 char user_name[3][32];
 //struct epoll_event et[3];
 //int relation[3][3]={{2,0,1},{1,2,0},{0,1,2}};
-int relation[3][3]={{2,0,0},{0,2,1},{1,1,2}};
+int relation[3][3]={{2,0,0},{0,2,1},{1,1,2}};//每名玩家在其他玩家那里对应的玩家编号,2代表自己
 
 //产生随机卡牌号
 int randomCardChoosed(){
@@ -128,6 +148,7 @@ int findCurPlayer(struct epoll_event *ev){
 	return curPlayer;
 }
 
+//废弃，倒计时计算有客户端承当
 void downcountTime(){
 	time_t nowTime;
 	time(&nowTime);
@@ -232,6 +253,7 @@ int judgeWinner(){
 	return resindex;
 	
 }
+
 //处理游戏正常结束
 void handleGameOver(){
 	PDU pdu;
@@ -239,6 +261,7 @@ void handleGameOver(){
 	strncpy(pdu.msg,GAME_OVER,32);
 	//判断最终胜利方
 	pdu.player=judgeWinner();
+	//向所有玩家发送获胜玩家在每个玩家中对应的编号
 	for(int i=0;i<PLAYER_NUM;i++){
 		pdu.player=relation[judgeWinner()][i];
 		send(peerPlayerInfo[i].event.data.fd,(char*)&pdu,sizeof(pdu),0);
@@ -246,16 +269,6 @@ void handleGameOver(){
 }
 
 
-<<<<<<< HEAD
-//在数据库中查找是否有用户登陆的用户账号和密码
-void getUserName(char*msg,char *nameBuf){
-        MYSQL_RES*res;
-        MYSQL_ROW row;
-	char sentence[128]={0};
-	sprintf(sentence,"select * from user where account='%s';",msg);
-        mysql_query(&sql,sentence);
-        res=mysql_store_result(&sql);
-=======
 //在数据库中查找msg存储账号对应的名称
 void getUserName(char*msg,char *nameBuf){
         MYSQL_RES*res=nullptr;
@@ -274,16 +287,12 @@ void getUserName(char*msg,char *nameBuf){
         	return;
     	}
 
->>>>>>> newBranch
 	//找到了该用户
         if(res->row_count>0){
 		row=mysql_fetch_row(res);
 		sprintf(nameBuf,"%s",row[2]);
         }
-<<<<<<< HEAD
-=======
 
->>>>>>> newBranch
         mysql_free_result(res);
 }
 
@@ -292,7 +301,7 @@ void gameRecvEvent(struct epoll_event*ev){
 	PDU pdu;
 	int ret=recv(ev->data.fd,(void*)&pdu,sizeof(pdu),0);
 	switch(pdu.msgType){
-		case ENUM_MSG_GET_PEER_NAME_REQUEST :
+		case ENUM_MSG_GET_PEER_NAME_REQUEST ://获取同局其他玩家用户名请求
 		{
 			char curPlayerName[32];
 			strncpy(curPlayerName,pdu.msg,32);
@@ -301,8 +310,7 @@ void gameRecvEvent(struct epoll_event*ev){
 				if(strcmp(curPlayerName,peerPlayerInfo[i].name)==0&&peerPlayerInfo[i].belongId==-1){
 					peerPlayerInfo[i].event=*ev;
 					peerPlayerInfo[i].belongId=nextPORT;
-					std::cout<<curPlayerName<<peerPlayerInfo[i].name<<"  join:----------"<<peerPlayerInfo[i].event.data.fd<<std::endl;
-					
+					//std::cout<<curPlayerName<<peerPlayerInfo[i].name<<"  join:----------"<<peerPlayerInfo[i].event.data.fd<<std::endl;
 				}
 			}
 			//遍历peerPlayerInfo，看是否所以同局玩家都以发送GET_PEER_NAME请求
@@ -325,7 +333,9 @@ void gameRecvEvent(struct epoll_event*ev){
 					for(int j=0;j<PLAYER_NUM;j++){
 						if(curfd!=peerPlayerInfo[j].event.data.fd){
 							char nameBuf[32]={0};
+							//获取账号对应的用户名
 							getUserName(peerPlayerInfo[j].name,nameBuf);
+
 							strncpy(respdu.msg+index*32,nameBuf,32);
 							index++;
 						}
@@ -337,11 +347,12 @@ void gameRecvEvent(struct epoll_event*ev){
 			}
 			break;
 		}
-		case ENUM_MSG_TAKECARD_REQUEST :
+		case ENUM_MSG_TAKECARD_REQUEST ://取牌请求
 		{
 			PDU respdu;
+			//生成随机牌号
 			respdu.cardId=randomCardChoosed();
-			//还没有判断卡牌没有剩余，返回-1的情况
+
 			respdu.msgType=ENUM_MSG_TAKECARD_RESPOND;
 			send(ev->data.fd,(void*)&respdu,sizeof(respdu),0);
 			//找出并记录发送请求的玩家序号
@@ -361,7 +372,7 @@ void gameRecvEvent(struct epoll_event*ev){
 			}
 			break;
 		}
-		case ENUM_MSG_UPDATE_DOWNCOUNT_TIME_NOTIFY :
+		case ENUM_MSG_UPDATE_DOWNCOUNT_TIME_NOTIFY ://更新倒计时请求
 		{
 			//抽牌方循环进行
 			turn=(turn+1)%(PLAYER_NUM);
@@ -372,20 +383,31 @@ void gameRecvEvent(struct epoll_event*ev){
 			}
 			PDU pdu;
 			pdu.msgType=ENUM_MSG_UPDATE_DOWNCOUNT_TIME_RESPOND;
+			//向每名玩家发送更新倒计时回复
 			for(int i=0;i<PLAYER_NUM;i++){
 				pdu.player=relation[turn][i];
 				send(peerPlayerInfo[i].event.data.fd,(char*)&pdu,sizeof(pdu),0);
 			}
 			break;
 		}
-		case ENUM_MSG_SEND_MESSAGE_REQUEST:                 
+		case ENUM_MSG_SEND_MESSAGE_REQUEST:  //发送消息请求               
 		{                         
+			//std::cout<<"受到拉"<<pdu.msgLen<<std::endl;
 			PDU*respdu=mkPDU(pdu.msgLen);                         
-			recv(ev->data.fd,(void*)(respdu->mainMsg),pdu.msgLen,0);
+			//char *buf=new char[pdu.msgLen];
+			//接受pdu的mainMsg部分信息
+			int n=recv(ev->data.fd,(void*)(respdu->mainMsg),respdu->msgLen,0);
+			//std::cout<<n<<std::endl;
+			//memcpy(respdu->mainMsg,buf,pdu.msgLen);
+			//std::cout<<"发送了："<<(char*)respdu->mainMsg<<std::endl;
 			respdu->msgType=ENUM_MSG_SEND_MESSAGE_RESPOND;
+			//转发给所有玩家，包括发送方
 			for(int i=0;i<PLAYER_NUM;i++){
 				send(peerPlayerInfo[i].event.data.fd,(char*)respdu,sizeof(PDU)+respdu->msgLen,0);
 			}
+			free(respdu);
+			//delete []buf;
+			break;
 		}
 		default:
 			break;
@@ -411,7 +433,7 @@ void gaming(){
         	return;
         }
 
-	//取出匹配队列中的三个玩家信息
+	//取出匹配队列中的三个玩家信息-账号
 	for(int i=0;i<3;i++){
 		strncpy(peerPlayerInfo[i].name,matchQ.front().name,32);
 		matchQ.erase(matchQ.begin());
@@ -419,40 +441,44 @@ void gaming(){
 	}
 	//重置牌
 	memset(used_card,0,54);
+
+	//初始化socket
 	int ssock=socket(AF_INET,SOCK_STREAM,0);
 	struct sockaddr_in saddr,caddr;
 	socklen_t caddr_len=sizeof(caddr);
 	saddr.sin_addr.s_addr=htonl(INADDR_ANY);
 	saddr.sin_port=htons(nextPORT);
 	saddr.sin_family=AF_INET;
+	//绑定
 	int ret=bind(ssock,(struct sockaddr*)&saddr,sizeof(saddr));
 	if(ret==-1){
 		std::cout<<"bind error\n";
 	}
-	ret=listen(ssock,3);
+	ret=listen(ssock,PLAYER_NUM);
 	if(ret==-1){
 		std::cout<<"listen error\n";
 	}
-	int efd=epoll_create(4);
-	struct epoll_event event,events[4];
+	//创建epoll监听树
+	int efd=epoll_create(PLAYER_NUM+1);
+	struct epoll_event event,events[PLAYER_NUM+1];
+	//将监听fd添加到epoll树
 	event.events=EPOLLIN;
 	event.data.fd=ssock;
 	epoll_ctl(efd,EPOLL_CTL_ADD,ssock,&event);
+	//用来判断是否结束当局游戏
 	bool isQuitGame=false;
 	while(1){
 		int ret=epoll_wait(efd,events,4,-1);
 		for(int i=0;i<ret;i++){
 			if(events[i].events&(EPOLLERR|EPOLLHUP)){//客户端关闭连接或连接发送错误的情况
-				//有问题等待处理，当一方客户端关闭时，应该让其他客户端也终止游戏
-				//std::cout<<"client close link or error\n";
+				//当一方客户端关闭时，应该让其他客户端也终止游戏
 				for(int j=0;j<PLAYER_NUM;j++){
-					if(peerPlayerInfo[j].event.data.fd==events[i].data.fd){
-						std::cout<<"user quit:::::"<<peerPlayerInfo[j].name<<std::endl;
-					}
+					//找出非主动退出的那一方并通知客户端进行处理
 					if(peerPlayerInfo[j].event.data.fd!=events[i].data.fd)
 					handleGameInterrupt(&peerPlayerInfo[j].event);
+
 					//将与客户端通信的fd从epoll树上摘除
-					std::cout<<"delete:----------"<<peerPlayerInfo[j].event.data.fd<<std::endl;
+					//std::cout<<"delete:----------"<<peerPlayerInfo[j].event.data.fd<<std::endl;
 					int res=epoll_ctl(efd,EPOLL_CTL_DEL,peerPlayerInfo[j].event.data.fd,NULL);
 					if(res==-1)perror("gaming epoll_ctl error:");
 					//关闭连接
@@ -462,8 +488,8 @@ void gaming(){
 				isQuitGame=true;
 				break;
 			}
-			else if(events[i].events&EPOLLIN){
-				if(events[i].data.fd==ssock){
+			else if(events[i].events&EPOLLIN){//客户端数据
+				if(events[i].data.fd==ssock){//客户端连接请求
 					int fd=accept(ssock,(struct sockaddr*)&caddr,&caddr_len);
 					event.events=EPOLLIN;
 					event.data.fd=fd;
@@ -477,8 +503,11 @@ void gaming(){
 		}
 		if(isQuitGame)break;
 	}
+	//从epoll树上移除监听fd
 	epoll_ctl(efd,EPOLL_CTL_DEL,ssock,NULL);
+	//关闭epoll监听树头节点
 	close(efd);
+	//关闭监听socket
 	close(ssock);
 
 	//关闭数据库
@@ -499,10 +528,6 @@ bool findUser(char*msg,char *nameBuf){
         res=mysql_store_result(&sql);
 	//找到了该用户
         if(res->row_count>0){
-<<<<<<< HEAD
-		printf("找到了\n");
-=======
->>>>>>> newBranch
 		row=mysql_fetch_row(res);
 		sprintf(nameBuf,"%s",row[2]);
         	mysql_free_result(res);
@@ -514,38 +539,38 @@ bool findUser(char*msg,char *nameBuf){
 
 //处理登陆请求
 void handle_login(PDU*pdu,struct epoll_event *ev){
+	//若找到成功，存储用户名
 	char nameBuf[32];
+	//查找是否有指定用户
 	bool ret=findUser(pdu->msg,nameBuf);
+
 	PDU respdu;
 	respdu.msgType=ENUM_MSG_LOGIN_RESPOND;
-	if(ret){
+	if(ret){//成功
 		strcpy(respdu.msg,LOGIN_SUCCEED);
 		strcpy(respdu.msg+32,nameBuf);
-	}else{
+		std::cout<<pdu->msg<<"---coming"<<std::endl;
+	}else{//失败
 		strcpy(respdu.msg,LOGIN_FAILED);
 	}
 	send(ev->data.fd,(char*)&respdu,sizeof(respdu),0);
 }
 
 
-//在数据库中添加用户的用户账号和密码
+//在数据库中添加新用户的用户账号和密码
 bool addUser(PDU*pdu,char *mainMsg){
 	char sentence[256]={0};
 	char name[32];
 	sprintf(name,"user%d",rand()%10000);
 	sprintf(sentence,"insert into user(account,pwd,name,email) values('%s','%s','%s','%s');",pdu->msg,pdu->msg+32,name,mainMsg);
-<<<<<<< HEAD
 	std::cout<<sentence<<std::endl;
-=======
 	//std::cout<<sentence<<std::endl;
->>>>>>> newBranch
 	//该函数执行成功时返回0
         bool ret=mysql_query(&sql,sentence);
 
 	MYSQL_RES*res;
         res=mysql_store_result(&sql);
 	if(res){
-		std::cout<<"res有的"<<std::endl;
         	mysql_free_result(res);
 	}
 
@@ -566,44 +591,59 @@ void handle_register(int fd,PDU*pdu,char*mainMsg){
 	char comma[128]={0};
 	sprintf(comma,"GET %s",mainMsg);
 	redisReply *reply=(redisReply*)redisCommand(redisC,comma);
-	std::cout<<comma<<reply->type<<std::endl;
+	//std::cout<<comma<<reply->type<<std::endl;
 	if(reply && reply->type == REDIS_REPLY_STRING){
 		//std::cout<<"verifiCode--:"<<mainMsg+32<<reply->str<<std::endl;
+		//判断查询到的验证码是否与用户发送的一样
 		if(strcmp(mainMsg+32,reply->str)==0){
+			//添加用户到数据库
+			bool ret=addUser(pdu,mainMsg);
+			if(ret){
+				//通知客户端注册成功
+				strcpy(respdu.msg,REGISTER_SUCCEED);
+				send(fd,(char*)&respdu,sizeof(respdu),0);
 
-			int ret=addUser(pdu,mainMsg);
-			strcpy(respdu.msg,REGISTER_SUCCEED);
-			send(fd,(char*)&respdu,sizeof(respdu),0);
-			return;
+				freeReplyObject(reply);
+
+				return;
+			}
 		}
 	}
+
 	freeReplyObject(reply);
+	//通知客户端注册失败
 	strcpy(respdu.msg,REGISTER_FAILED);
 	send(fd,(char*)&respdu,sizeof(respdu),0);
 
 }
+
+//生成随机验证码
 int  produceVerificationCode(char *code){
 	int ret=rand()%8999+1000;
 	sprintf(code,"%d",ret);
 	return ret;
 }
+
 //处理验证码
 void handle_verification(PDU *pdu,int fd){
+	//生成验证码
 	char code[5];
 	produceVerificationCode(code);
+
 	//向redis服务器中添加邮箱地址与对应验证码
 	char comma[128]={0};
 	sprintf(comma,"SET %s %s",pdu->msg,code);
 	redisReply *reply=(redisReply*)redisCommand(redisC,comma);
 	freeReplyObject(reply);
-	//设置过期
+
+	//设置验证码存活期限
 	memset(comma,'0',sizeof(comma));
 	sprintf(comma,"EXPIRE %s %d",pdu->msg,VERIFI_CODE_EXPIRE_TIME_S);
 	reply=(redisReply*)redisCommand(redisC,comma);
 	freeReplyObject(reply);
 
-	int ret=fork();
 	//开启子进程且让其执行发送验证码的程序
+	int ret=fork();
 	if(ret==0){
 		ret=execl("./sendVCode","./sendVCode",pdu->msg,code,NULL);
 		if(ret==-1){
@@ -620,20 +660,18 @@ void handle_changeUserName(char*msg,int fd){
 	char account[32];
 	strcpy(account,msg);
 	strcpy(newName,msg+32);
+
+	//执行mysql修改命令
 	char sequence[128];
 	sprintf(sequence,"UPDATE user SET name='%s' WHERE account='%s'",newName,account);
 	mysql_query(&sql,sequence);
-<<<<<<< HEAD
-=======
 
 	MYSQL_RES*res;
         res=mysql_store_result(&sql);
 	if(res){
-		std::cout<<"res有的"<<std::endl;
         	mysql_free_result(res);
 	}
 
->>>>>>> newBranch
 	PDU respdu;
 	respdu.msgType=ENUM_MSG_CHANGE_USERNAME_RESPOND;
 	strcpy(respdu.msg,newName);
@@ -653,38 +691,42 @@ void handle_recv(struct epoll_event *ev){
 	pdu.msgLen=recvpdu->msgLen;
 	std::cout<<recvpdu->mainMsg<<std::endl;
 */	
+	//读取客户端信息，不包含mainMsg里的
 	PDU pdu;
 	read(ev->data.fd,(void*)&pdu,sizeof(pdu));
 		
-	if(pdu.msgType==ENUM_MSG_LOGIN_REQUEST){
+	if(pdu.msgType==ENUM_MSG_LOGIN_REQUEST){//登陆请求
 		handle_login(&pdu,ev);
-		std::cout<<pdu.msg<<"  --  coming"<<std::endl;
 	}
 	else if(pdu.msgType==ENUM_MSG_CHANGE_USERNAME_REQUEST)//修改名字请求
 	{
 		handle_changeUserName(pdu.msg,ev->data.fd);
 	}
-	else if(pdu.msgType==ENUM_MSG_GET_VERIFICATION_CODE_REQUEST){
+	else if(pdu.msgType==ENUM_MSG_GET_VERIFICATION_CODE_REQUEST){//获取验证码请求
 		handle_verification(&pdu,ev->data.fd);
-
 	}
-	else if(pdu.msgType==ENUM_MSG_REGIST_REQUEST){
+	else if(pdu.msgType==ENUM_MSG_REGIST_REQUEST){//注册请求
+		//读取pdu的mainMsg里的数据
 		char *mainMsg=(char*)malloc(pdu.msgLen);
 		//memcpy((void*)mainMsg,(void*)recvpdu->mainMsg,sizeof(mainMsg));
 		//注意：sizeof(mainMsg)返回了8,即指针大小
 		int ret=read(ev->data.fd,(void*)mainMsg,pdu.msgLen);
 		//std::cout<<mainMsg<<"|"<<mainMsg+32<<"|"<<ret<<"|"<<pdu.msgLen<<"|"<<sizeof(mainMsg)<<std::endl;
+
 		handle_register(ev->data.fd,&pdu,mainMsg);
 		free(mainMsg);
 	}
-	else if(pdu.msgType==ENUM_MSG_MATCH_REQUEST){
-		//将新到的匹配用户加入队列
+	else if(pdu.msgType==ENUM_MSG_MATCH_REQUEST){//匹配请求
+		//将新到的匹配用户加入匹配队列
 		struct UserInfo newMatchUser;
 		strncpy(newMatchUser.name,pdu.msg,32);
 		newMatchUser.event=*ev;
 		matchQ.push_back(newMatchUser);
 		//std::cout<<"---------------matchQ-size----:"<<matchQ.size()<<std::endl;
+		
+		//当匹配队列中等待的玩家数量达到PLAYER——NUM后，开启游戏
 		if(matchQ.size()>=PLAYER_NUM){
+			//开启游戏子进程
 			int ret=fork();
 			if(ret==-1){//增加子进程失败
 			}
@@ -694,18 +736,20 @@ void handle_recv(struct epoll_event *ev){
 
 			}
 			else if(ret>0){//父进程
-				//向PLAYER_NUM个同局客户端发送MATCH回复，以便客户端知道匹配完成了
+				//向PLAYER_NUM个同局客户端发送MATCH回复，以便客户端知道匹配成功了
 				for(int i=0;i<PLAYER_NUM;i++){
 					PDU respdu;
 					respdu.msgType=ENUM_MSG_MATCH_RESPOND;
 				     	strcpy(respdu.msg,MATCH_SUCCEED);
+					//附加上游戏子进程的端口号
 					char portBuf[32];
 					sprintf(portBuf,"%d",nextPORT);
-					//可能存在问题：nextPORT++后子进程才复制了，存疑？
 					strcpy(respdu.msg+32,portBuf);
 					send(matchQ.front().event.data.fd,(void*)&respdu,sizeof(respdu),0);
+					//从匹配队列中清除
 					matchQ.erase(matchQ.begin());
 				}
+				//下一个对局的端口号
 				nextPORT++;
 
 			}
@@ -713,7 +757,8 @@ void handle_recv(struct epoll_event *ev){
 		}
 
 	}
-	else if(pdu.msgType==ENUM_MSG_CANCEL_MATCH_REQUEST){
+	else if(pdu.msgType==ENUM_MSG_CANCEL_MATCH_REQUEST){//取消匹配请求
+		//从匹配队列中找出并删除
 		for(int i=0;i<matchQ.size();i++){
 			if(matchQ[i].event.data.fd==ev->data.fd){
 				matchQ.erase(matchQ.begin()+i);
@@ -747,60 +792,72 @@ void recycleChildProcess(int signum){
 	*/
 }
 int main(){
-	//注册SIGCHLD信号
+	//注册SIGCHLD信号,回收游戏子进程(当玩家匹配成功进入游戏时服务器会开辟子进程管理游戏）
 	struct sigaction act;
 	act.sa_handler=recycleChildProcess;
 	act.sa_flags=0;
 	sigemptyset(&(act.sa_mask));
 	sigaction(SIGCHLD,&act,NULL);
 
-	//注册忽略SIGPIPE信号
+	//注册忽略SIGPIPE信号,避免有客户端异常退出导致服务器终止
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;
 	sigaction( SIGPIPE, &sa, 0 );
 
-	//初始化与连接数据库
+	//初始化与连接数据库,存储用户账号信息
         mysql_init(&sql);
-        if(!mysql_real_connect(&sql,"127.0.0.1","bamboo","bamboo","card",3306,NULL,0)){
+        if(!mysql_real_connect(&sql,MYSQL_SERVER_IP,MYSQL_SERVER_ACCOUNT,MYSQL_SERVER_PWD,MYSQL_SERVER_DATABASE_NAME,MYSQL_SERVER_PORT,NULL,0)){
         	fprintf(stderr, "connection failed: %s\n", mysql_error(&sql));
                 mysql_close(&sql);
         	return 1;
         }
 
-	//创建redis连接
+	//连接redis服务器,存储用户注册时发送验证码后邮箱对应的验证码
 	redisC=redisConnect(REDIS_SERVER_IP,REDIS_SERVER_PORT);
 
+	//随机种子
 	srand(time(0));
+
 	memset(used_card,0,54);
+
+	//创建socket
 	int ssock=socket(AF_INET,SOCK_STREAM,0);
 	struct sockaddr_in saddr,caddr;
 	socklen_t caddr_len=sizeof(caddr);
 	saddr.sin_addr.s_addr=htonl(INADDR_ANY);
 	saddr.sin_port=htons(PORT);
 	saddr.sin_family=AF_INET;
+	//绑定
 	int ret=bind(ssock,(struct sockaddr*)&saddr,sizeof(saddr));
 	if(ret==-1){
 		std::cout<<"bind error\n";
 	}
-	ret=listen(ssock,1024);
+
+	//设置为被动监听
+	ret=listen(ssock,MAX_SERVER_WAIT_QUEUE_SIZE);
 	if(ret==-1){
 		std::cout<<"listen error\n";
 	}
+
+	//创建epoll树
 	int efd=epoll_create(1024);
-	struct epoll_event event,events[1024];
+
+	struct epoll_event event,events[MAX_EPOLL_WAIT_HANDLE_NUM_ONCE];
+	//把监听fd添加进epoll树
 	event.events=EPOLLIN;
 	event.data.fd=ssock;
 	epoll_ctl(efd,EPOLL_CTL_ADD,ssock,&event);
+
 	int timeout=1000;
 	while(1){
-		int ret=epoll_wait(efd,events,1024,timeout);
+		int ret=epoll_wait(efd,events,MAX_EPOLL_WAIT_HANDLE_NUM_ONCE,timeout);
 		if(ret==-1){
 			perror("epoll_wait:");
 		}
 		//if(ret!=0)
 		//std::cout<<"-----------epoll_wait,return:"<<ret<<std::endl;
 		for(int i=0;i<ret;i++){
-			if(events[i].events&(EPOLLERR|EPOLLHUP)){//客户端关闭连接或连接发送错误的情况
+			if(events[i].events&(EPOLLERR|EPOLLHUP)){//客户端关闭连接或连接发生错误的情况
 				//std::cout<<"client close link or error\n";
 				//若玩家在排队时强制退出，将其移出匹配队列
 				for(int i=0;i<matchQ.size();i++){
@@ -818,22 +875,27 @@ int main(){
 				if(res==-1)
 					perror("main close fail:");
 			}
-			else if(events[i].events&EPOLLIN){
+			else if(events[i].events&EPOLLIN){//客户端发送数据的情况
+				//新客户端连接
 				if(events[i].data.fd==ssock){
+					//处理连接请求并添加进epoll树
 					int fd=accept(ssock,(struct sockaddr*)&caddr,&caddr_len);
 					event.events=EPOLLIN;
 					event.data.fd=fd;
 					epoll_ctl(efd,EPOLL_CTL_ADD,fd,&event);
-				}else{
+				}else{//老客户端发送请求
 					handle_recv(&events[i]);
-				
 				}
 			}
 			
 		}
 	}
+	//关闭epoll树的头
 	close(efd);
+
+	//关闭监听socket
 	close(ssock);
+
 	//清除redis连接
 	redisFree(redisC);
 
