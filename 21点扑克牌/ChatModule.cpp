@@ -9,23 +9,23 @@
 
 #define MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM 16//聊天栏单行最多显示文字
 
-#define CHAT_COLUMN_W 300
+#define CHAT_COLUMN_W 300//聊天栏宽度
 
 COLORREF textColors[10] = { WHITE,BLUE,GREEN,RGB(255, 192, 203),RGB(255, 105, 180),RGB(238, 130, 238),RGB(0, 255, 255),RGB(255, 255, 0),RGB(253, 245, 230),RGB(255, 69, 0) };
 
 ChatModule::ChatModule(SOCKET sock, const wchar_t* userNmae)
 {
-	//std::cout << "有参构造\n";
+	
 	m_inputText = new wchar_t[MAX_INPUT_CHAR_NUM_ONCE];
 
 	m_inputTextBox = Button(0, HEIGHT - TEXT_BOX_H, WIDTH, TEXT_BOX_H);
 
 	m_allText = new wchar_t*[MAX_ALL_TEXT_CHAR_NUM];
-	//std::cout << m_allText << std::endl;
+	
 	for (int i = 0; i < MAX_ALL_TEXT_CHAR_NUM; i++) {
 		m_allText[i] = new wchar_t[MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM];
 		wmemset(m_allText[i], _T('\0'), MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM);
-		//wcscpy(m_allText[i], _T("\0"));
+		
 	}
 	m_sock = sock;
 
@@ -44,11 +44,10 @@ ChatModule::ChatModule()
 	m_inputTextBox = Button(0, HEIGHT - TEXT_BOX_H, WIDTH, TEXT_BOX_H);
 
 	m_allText = new wchar_t* [MAX_ALL_TEXT_CHAR_NUM];
-	//std::cout << m_allText << std::endl;
+	
 	for (int i = 0; i < MAX_ALL_TEXT_CHAR_NUM; i++) {
 		m_allText[i] = new wchar_t[MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM];
 		wmemset(m_allText[i], _T('\0'), MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM);
-		//wcscpy(m_allText[i], _T("\0"));
 	}
 	
 
@@ -58,9 +57,9 @@ ChatModule::ChatModule()
 	memset(m_colorId, 0, MAX_INPUT_CHAR_NUM_ONCE);
 }
 
+//释放内存
 ChatModule::~ChatModule()
 {
-	//std::cout << "析构\n";
 	delete[]m_inputText;
 	for (int i = 0; i < MAX_ALL_TEXT_CHAR_NUM; i++) {
 		delete[]m_allText[i];
@@ -76,7 +75,7 @@ void ChatModule::inputEvent(ExMessage* msg)
 		if (m_isInputing) {//用户正在输入聊天消息
 			if (msg->ch == _T('\r')) {//输入回车
 				sendMessageToServer();
-				//addTextToAllText(m_inputText);
+				
 				m_isInputing = false;
 			}
 			else if (msg->ch == _T('\b')) {//输入backspace
@@ -88,7 +87,7 @@ void ChatModule::inputEvent(ExMessage* msg)
 			else {//其他字符按键                                   //留给用户名和冒号的
 				if(wcslen(m_inputText)< MAX_INPUT_CHAR_NUM_ONCE-1-wcslen(m_userName)-1)
 				swprintf(m_inputText, _T("%s%c"), m_inputText, msg->ch);
-				//std::cout << wcslen(m_inputText) << std::endl;
+				
 			}
 		}
 		else {//用户不是正在输入聊天消息
@@ -97,7 +96,6 @@ void ChatModule::inputEvent(ExMessage* msg)
 				m_isInputing = true;
 				//模拟清空输入文字
 				wmemset(m_inputText, _T('\0'), MAX_INPUT_CHAR_NUM_ONCE);
-				//wcscpy(m_inputText, _T("\0"));
 			}
 		}
 		
@@ -113,7 +111,6 @@ void ChatModule::draw()
 	//输入状态
 	if (m_isInputing) {
 		//输入文字区
-		//setfillcolor(WHITE);
 		m_inputTextBox.draw(m_inputText, BTN_TEXT_STYLE_LEFT);
 	}
 	
@@ -123,8 +120,7 @@ void ChatModule::draw()
 	//聊天框文字
 	int x = WIDTH-CHAT_COLUMN_W;
 	int y = HEIGHT - 20 * MAX_ALL_TEXT_CHAR_NUM;
-	//int randomTextColor = rand() % 10;
-	//settextcolor(textColors[randomTextColor]);
+	
 	for (int i = 0; i < MAX_ALL_TEXT_CHAR_NUM; i++) {
 		settextcolor(textColors[m_colorId[i]]);
 		outtextxy(x, y + i * 20, m_allText[i]);
@@ -155,6 +151,7 @@ void ChatModule::recvEvent(PDU* pdu)
 	}
 }
 
+//往存储聊天栏信息的allText添加新消息
 void ChatModule::addTextToAllText(wchar_t* text)
 {
 	
@@ -192,17 +189,15 @@ void ChatModule::addTextToAllText(wchar_t* text)
 //发送用户发送的消息给服务器
 void ChatModule::sendMessageToServer()
 {
+	//往消息前附加上用户名
 	int inputTextLen = wcslen(m_inputText);
-
 	wchar_t* tmp = new wchar_t[inputTextLen + 1];
-
 	//wmemset(tmp, _T('\0'), inputTextLen + 1);
-	
 	wmemcpy(tmp, m_inputText, inputTextLen + 1);
-
 	//wmemset(m_inputText, _T('\0'), MAX_INPUT_CHAR_NUM_ONCE);
-
 	swprintf(m_inputText, _T("%s:%s"), m_userName, tmp);
+
+	//发送
 	PDU* pdu = mkPDU((wcslen(m_inputText) + 1) * sizeof(wchar_t));
 	pdu->msgType = ENUM_MSG_SEND_MESSAGE_REQUEST;
 	memcpy((void*)pdu->mainMsg, m_inputText, pdu->msgLen);

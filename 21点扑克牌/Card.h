@@ -1,5 +1,6 @@
 #pragma once
 #include"protocol.h"
+//ø®≈∆¿‡
 class Card
 {
 private:

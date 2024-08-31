@@ -8,7 +8,6 @@ void Control::login()
 	m_loginSys.play();
 	wcscpy(m_account, m_loginSys.getAccount());
 	wcscpy(m_name, m_loginSys.getUserName());
-	std::wcout << m_account << std::endl;
 
 	//登录完初始化设置
 	m_setting = Setting(csock, m_account, m_name);
@@ -47,10 +46,12 @@ Control::Control()
 
 	loadimage(&m_clockImg, _T("./clock.png"),40,40);
 	
+	//初始化用户名显示框
 	m_userNameBox = Button(0, 0, BTN_SIZE_USER_NAME_BOX_W, BTN_SIZE_USER_NAME_BOX_H);
 
 	m_matchBtnCharSize = 50;
 
+	//初始化设置按钮
 	m_settingBtn = Button(WIDTH - BTN_SIZE_SETTING_W,0, BTN_SIZE_SETTING_W, BTN_SIZE_SETTING_H);
 		
 	loadimage(&m_settingImg, _T("./设置.png"), BTN_SIZE_SETTING_W, BTN_SIZE_SETTING_H);
@@ -61,19 +62,23 @@ Control::Control()
 //游戏初始化
 void Control::init()
 {
-	memset(m_usedCard, 0, 54);
+	//清空已下卡牌
+	memset(m_usedCard, 0, CARD_NUM);
 
 	m_isQuitGame = false;
 	
+	//清空其他玩家卡牌
 	for (int i = 0; i < PLAYER_NUM - 1; i++) {
 		m_otherPlayerCard[i].clear();
 	}
 	
+	//清空自己的卡牌
 	m_card.clear();
 
 	//可以防止有其他玩家未连接成功时的一瞬玩家快速点击造成的取牌
 	m_nowTurn = -1;
 
+	//初始化聊天模块
 	m_chat =new ChatModule(gameSock,m_name);
 	
 }
@@ -81,20 +86,21 @@ void Control::init()
 //游戏界面绘制
 void Control::draw()
 {
-	
+	//绘制背景
 	putimage(0, 0, &m_bgImg);
-	//绘制玩家扑克牌
+
+	//绘制玩家自己的扑克牌
 	int allwidth = (m_card.size() + 1) * CARD_WIDTH / 2;
 	int beginX = (WIDTH - allwidth) / 2;
-	int beginY = 2*HEIGHT / 3;
+	int beginY = 2 * HEIGHT / 3;
 	for (int i = 0; i < m_card.size(); i++) {
 		putimage(beginX + i * CARD_WIDTH / 2, beginY, &m_cardImg[m_card[i].getId()]);
 	}
 
 	//绘制中心抽牌区
-	putimage((WIDTH - CARD_WIDTH) / 2, (HEIGHT - CARD_HEIGHT) / 2, &m_cardImg[54]);
+	putimage((WIDTH - CARD_WIDTH) / 2, (HEIGHT - CARD_HEIGHT) / 2, &m_cardImg[CARD_NUM]);
 
-	//绘制玩家名字
+	//绘制其他玩家名字
 	for (int i = 0; i < m_otherPlayerName.size(); i++) {
 		switch (i) {
 		case 0:
@@ -139,11 +145,16 @@ void Control::draw()
 			break;
 		}
 		for (int j = 0;j < m_otherPlayerCard[i].size(); j++) {
-			putimage(beginX + j * CARD_WIDTH / 2, beginY, &m_cardImg[m_otherPlayerCard[i][j].getId()]);
+			if (m_isQuitGame) {//游戏结束时显示所有玩家的卡牌
+				putimage(beginX + j * CARD_WIDTH / 2, beginY, &m_cardImg[m_otherPlayerCard[i][j].getId()]);
+			}
+			else {//正在游戏中则显示为卡牌的背图
+				putimage(beginX + j * CARD_WIDTH / 2, beginY, &m_cardImg[CARD_NUM]);
+			}
 		}
 	}
 
-	//绘制闹钟
+	//判断闹钟位置
 	int clockX = -100;
 	int clockY = -100;
 	switch (m_nowTurn) {
@@ -172,9 +183,10 @@ void Control::draw()
 	default:
 		break;
 	}
+	//绘制闹钟
 	transparentImage(NULL, clockX, clockY, &m_clockImg, BLACK);
-	//putimage(clockX, clockY, &m_clockImg);
 
+	//绘制闹钟中的倒计时
 	settextstyle(20, 0, _T("微软雅黑"));
 	int downcountTimeX = (m_clockImg.getwidth() - textwidth(m_downcountTimeSecond)) / 2 + clockX;
 	int downcountTimeY= (m_clockImg.getheight() - textheight(m_downcountTimeSecond)) / 2 + clockY;
@@ -183,29 +195,16 @@ void Control::draw()
 	//绘制返回按钮
 	button(0, 0, _T("返回"));
 
+	//绘制聊天模块相关的
 	m_chat->draw();
-}
-
-//生成随机卡牌-暂废弃
-void Control::randomCardDeal()
-{
-	static int card_num = 53;
-	//std::cout << card_num << std::endl;
-	if (card_num <= 0)return;
-	int card_num1;
-	while (m_usedCard[(card_num1 = rand() % 54)]);
-	
-	m_usedCard[card_num1] = 1;
-	Card card1(card_num1);
-	m_card.push_back(card1);
-	
-	card_num--;
 }
 
 //向服务器请求卡牌
 void Control::getRandomCardFromServer()
 {
+	//std::cout << "一次\n";
 	PDU pdu;
+	pdu.msgLen = 30;
 	pdu.msgType = ENUM_MSG_TAKECARD_REQUEST;
 	send(gameSock, (char*)&pdu, sizeof(pdu), 0);
 	
@@ -229,10 +228,10 @@ void Control::mouseEvent()
 			if (mx > (WIDTH - CARD_WIDTH) / 2 && mx< (WIDTH - CARD_WIDTH) / 2 + CARD_WIDTH && my>(HEIGHT - CARD_HEIGHT) / 2 && my < (HEIGHT - CARD_HEIGHT) / 2 + CARD_HEIGHT) {
 				if (m_nowTurn == PLAYER_NUM - 1)//在非自方回合时防止玩家获取牌，也可以防止有其他玩家未连接成功时的一瞬玩家快速点击造成的取牌
 					getRandomCardFromServer();
-				else
-					std::cout << m_nowTurn << std::endl;
+				//else
+					//std::cout << m_nowTurn << std::endl;
 			}
-			else if (mx < 100 && my < 40) {
+			else if (mx < 100 && my < 40) {//返回按钮
 				closesocket(gameSock);
 				m_isQuitGame = true;
 			}
@@ -263,10 +262,9 @@ void Control::connectToServer()
 	again:
 	int ret=connect(csock, (struct sockaddr*)&sockaddr, sizeof(sockaddr));
 	
-	//std::cout << ret;
 	//未成功连接
 	if (ret != 0) {
-		//std::cout << "connect error\n"<< WSAGetLastError();
+		
 		ret=MessageBox(NULL, _T("未连接到服务器,\n是否重试？\n(取消将退出游戏)"), NULL, MB_RETRYCANCEL);
 		
 		if (ret == IDRETRY) {//重试
@@ -290,14 +288,6 @@ Control::~Control()
 	closesocket(csock);
 	//禁止使用DLL
 	WSACleanup();
-}
-
-//获取用户输入账号
-void Control::getUserNameInput()
-{
-	while (!InputBox(m_account, 32, _T("请输入用户名(请使用英文)：")));
-	
-	sendUserNameToServer();
 }
 
 //用来在游戏主循环中判断游戏是否结束或者中断
@@ -563,6 +553,7 @@ void Control::gameRecvEvent()
 			std::cout << "take card error\n";
 			return;
 		}
+		
 		//将牌放进己方的牌库
 		Card card1(pdu.cardId);
 		m_card.push_back(card1);
@@ -575,6 +566,7 @@ void Control::gameRecvEvent()
 			return;
 		}
 		Card card1(pdu.cardId);
+		
 		//std::cout << __func__<<pdu.player << std::endl;
 		//找出player对应的牌库放其他玩家的牌
 		switch (pdu.player) {
@@ -620,33 +612,35 @@ void Control::gameRecvEvent()
 	else if (pdu.msgType == ENUM_MSG_GAMEOVER_NOTIFY) {//游戏结束或终止通知
 		if (strcmp(pdu.msg, GAME_INTERRUPT) == 0)//有玩家中途退出的情况
 		{
-			std::cout << "游戏结束，关闭连接" << std::endl;
 
-			draw();
 			closesocket(gameSock);//关闭与服务器子线程游戏服务器的连接
-			//MessageBox(NULL, _T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"), _T("异常"), NULL);
+
+			m_isQuitGame = true;//放置在提示窗口前，且调用draw函数，显示出每位玩家的卡牌
+			draw();
+	
 			myMessageBox(_T("有玩家非正常退出,\n游戏被迫终止\n(点击确认退出当局游戏)"),_T("异常"));
 
-			m_isQuitGame = true;
+			
 		}
 		else if (strcmp(pdu.msg, GAME_OVER) == 0) {//游戏正常结束的情况
+
+			m_isQuitGame = true;//放置在提示窗口前，且调用draw函数，显示出每位玩家的卡牌
 
 			closesocket(gameSock);//关闭与服务器子线程游戏服务器的连接
 			//拼接提示语和胜利方
 			wchar_t winnerName[32] = { 0 };
 			if (pdu.player == PLAYER_NUM - 1) {
-				swprintf(winnerName,_T("你(%s)"), m_account);
+				swprintf(winnerName,_T("你(%s)"), m_name);
 			}
 			else {
 				mbstowcs(winnerName, m_otherPlayerName[pdu.player].c_str(), 32);
 			}
 			wchar_t sequence[64] = { 0 };
 			swprintf(sequence, _T("游戏结束\n %s 赢了\n(点击确认退出当局游戏)"), winnerName);
-			//MessageBox(NULL, sequence, _T("游戏结束"), NULL);
+			
 			draw();
-			myMessageBox(sequence, _T("游戏结束"));
 
-			m_isQuitGame = true;
+			myMessageBox(sequence, _T("游戏结束"));
 		}
 	}
 	else if (pdu.msgType == ENUM_MSG_UPDATE_DOWNCOUNT_TIME_RESPOND) {//更新倒计时回复
