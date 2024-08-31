@@ -8,7 +8,7 @@
 class ChatModule
 {
 public:
-	ChatModule(SOCKET sock);
+	ChatModule(SOCKET sock,const wchar_t *userNmae);
 	ChatModule();
 	~ChatModule();
 	
@@ -34,6 +34,10 @@ private:
 
 	Button m_inputTextBox;//文字输入框
 
-	SOCKET m_sock;
+	SOCKET m_sock;//与子进程游戏服务器通信
+
+	wchar_t m_userName[32];//用户名
+
+	int* m_colorId;//聊天栏每条信息的颜色
 };
 

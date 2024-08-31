@@ -51,7 +51,7 @@ private:
 	IMAGE m_settingImg;
 
 	//ÁÄÌìÀà
-	//ChatModule m_chat;
+	ChatModule *m_chat;
 
 public:
 
