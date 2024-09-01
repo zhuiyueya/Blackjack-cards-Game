@@ -22,6 +22,7 @@ void button(int x, int y, LPCTSTR text, bool isTransparent, int width, int heigh
 	outtextxy(tx, ty, text);
 }
 
+//绘制背景透明的图片的函数
 void transparentImage(IMAGE* dst, int x, int y, IMAGE* src, UINT transaprentcolor)
 {
 	HDC dstDC = GetImageHDC(dst);

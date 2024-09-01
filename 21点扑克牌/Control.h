@@ -10,18 +10,29 @@ class Control
 {
 private:
 	IMAGE m_bgImg;
+
 	std::vector<IMAGE>m_cardImg;
+
 	std::vector<Card>m_card;
+
 	bool m_usedCard[54];
+
 	WSADATA wsadata;
+
 	SOCKET csock;
+
 	wchar_t m_account[32];//用户账号
+
 	bool m_isQuitGame;
+
 	std::vector<std::vector<Card>>m_otherPlayerCard;
+
 	std::vector<std::string>m_otherPlayerName;
+
 	int m_windowState;//当前所处界面状态
 
 	SOCKET gameSock;//执行游戏时与服务器通信
+
 	int gamePORT;//服务器子进程端口号
 
 	int m_nowTurn;//当前回合
@@ -66,9 +77,7 @@ public:
 	//游戏绘制
 	void draw();
 
-	//开局随机给两张牌-暂废弃
-	void randomCardDeal();
-
+	//向服务器请求随机卡牌
 	void getRandomCardFromServer();
 
 	//鼠标事件
@@ -78,9 +87,6 @@ public:
 	void connectToServer();
 
 	~Control();
-
-	//玩家输入用户名
-	void getUserNameInput();
 
 	//判断是否退出游戏
 	bool IsQuitGame();

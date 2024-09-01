@@ -3,7 +3,13 @@
 #include<vector>
 #include<string>
 
+//-------------需要修改的如下-----------------
+
 #define SERVER_IP "192.168.183.129"//服务器IP地址
+
+//-------------需要修改的如上-----------------
+
+
 #define SERVER_PORT 8888 //服务器守候的端口号
 
 #define WIDTH 960 //窗口宽度
@@ -84,6 +90,8 @@ struct PDU {
 };
 //数据类型
 enum procotol {
+	ENUM_NULL,
+
 	ENUM_MSG_LOGIN_REQUEST,//登录请求
 	ENUM_MSG_LOGIN_RESPOND,//登录回复
 
@@ -132,6 +140,7 @@ enum windowstate {
 
 };
 PDU* mkPDU(int msgLen);
+
 //老绘制按钮函数，以增加Button类
 void button(int x,int y,LPCTSTR text,bool isTransparent=false,int width=100,int height=40);
 

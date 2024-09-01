@@ -1,6 +1,9 @@
 #include "Alpha.h"
-int alpha = 128;
-DWORD* g_pBuf11;
+
+int alpha = 128;//透明度：0~256
+
+DWORD* g_pBuf11;//缓冲区
+
 //设置透明度
 void setalpha(int al) {
 	alpha = al;
@@ -34,8 +37,7 @@ void putpixelalpha(DWORD* g_pbuf, int x, int y, COLORREF c) {
 	backdropcolor = fast_getpixelcolor(x, y, width);
 
 	int r2 = GetRValue(c), g2 = GetGValue(c), b2 = GetBValue(c), r1=GetRValue(backdropcolor), g1 = GetGValue(backdropcolor), b1 = GetBValue(backdropcolor);
-	//if(bkcolor==backdropcolor)
-	//std::cout << bkcolor << "..." << backdropcolor << std::endl;
+	
 	//如果获取的颜色等于背景色不进行透明计算
 	if (bkcolor == backdropcolor) {
 		g_pbuf[puti] = BGR(c);
@@ -45,6 +47,7 @@ void putpixelalpha(DWORD* g_pbuf, int x, int y, COLORREF c) {
 	}
 }
 
+//绘制矩形
 void rec(int x1, int y1, int x2, int y2, COLORREF c, int alp)
 {
 	setalpha(alp);

@@ -12,22 +12,26 @@ public:
 	ChatModule();
 	~ChatModule();
 	
+	//用户输入事件
 	void inputEvent(ExMessage* msg);
 
+	//绘制
 	void draw();
 
+	//处理服务器发送的数据
 	void recvEvent(PDU* pdu);
-	void sendMessageToServer();
+	
 private:
 
 	//往存储聊天栏信息的allText添加新消息
 	void addTextToAllText(wchar_t* text);
 
 	//发送用户发送的消息给服务器
-	
+	void sendMessageToServer();
 
 private:
 	wchar_t** m_allText;//存储聊天栏的文字
+
 	wchar_t* m_inputText;//存储输入框的文字
 
 	bool m_isInputing;//判断是否正在输入
