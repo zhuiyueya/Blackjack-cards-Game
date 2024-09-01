@@ -177,9 +177,22 @@ void registerSystem::draw()
 		//绘制注册界面返回按钮
 		m_RegisterWindowReturnBtn.draw(_T("返回"));
 	}
+
+	static int flash = 0;
+	bool isDraw = false;
+	for (int i = 5; i < 20; i++) {
+		if (flash % i == 0) {
+			isDraw = true;
+		}
+	}
+	//绘制光标
+	if(isDraw)
+		line(m_cursorPos.first, m_cursorPos.second, m_cursorPos.first, m_cursorPos.second + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 2);
+	flash++;
+	if (flash == INT_MAX)flash = 0;
 }
 
-//监听登录界面鼠标事件
+//监听登录界面鼠标事件---暂废弃
 void registerSystem::mouseEvent()
 {
 	ExMessage msg;
@@ -496,7 +509,7 @@ wchar_t* registerSystem::play()
 	while (1) {
 		cleardevice();
 		draw();
-		mouseEvent();
+		inputEvent();
 		recvEvent();
 		if (isConfirmSubmitJudge())break;
 		FlushBatchDraw();
@@ -573,7 +586,7 @@ void registerSystem::sendLoginRequest()
 
 }
 
-//设置输入时光标|闪烁
+//设置输入时光标|闪烁---暂废弃
 void registerSystem::setInputFlashFlag(bool isInput, wchar_t* content)
 {
 	
@@ -632,7 +645,7 @@ void registerSystem::initRegisterWindow()
 	wcsset(m_verificationCode, _T('\0'));
 }
 
-//为鼠标点击的所属添加光标
+//为鼠标点击的所属添加光标---暂废弃
 void registerSystem::addCursor(wchar_t* content)
 {
 	//确认是否本来就是处于输入状态（content==true），若是此时不用再绘制光标|，否则绘制，即添加|进数组
@@ -646,7 +659,7 @@ void registerSystem::addCursor(wchar_t* content)
 		swprintf(content, _T("%s|"), content);
 }
 
-//为非鼠标点击的所属移除光标
+//为非鼠标点击的所属移除光标---暂废弃
 void registerSystem::removeCursor(wchar_t* content)
 {
 	//去掉content输入框的光标
@@ -661,26 +674,17 @@ void registerSystem::removeCursor(wchar_t* content)
 //往content内添加新字符
 void registerSystem::addNewChar(wchar_t* content, TCHAR newch)
 {
-	int maxlength=31;
-	
-	for (int i = 0; i < wcslen(content); i++) {
-		if (content[i] == _T('|')) {
-			maxlength += 1;
-			break;
-		}
-	}
-	
+	int maxlength=32;
 	if (wcslen(content) < maxlength) {
-		removeCursor(content);
-		swprintf(content, _T("%s%c|"), content, newch);
+		swprintf(content, _T("%s%c"), content, newch);
 	}
+
 }
 
 //往content内移除旧字符
 void registerSystem::delOldChar(wchar_t* content)
 {
-	if (wcslen(content) > 1) {
-		content[wcslen(content) - 2] = _T('|');
+	if (wcslen(content) > 0) {
 		content[wcslen(content) - 1] = _T('\0');
 	}
 }
@@ -754,6 +758,182 @@ int registerSystem::verifiCodeCountdown()
 wchar_t* registerSystem::getUserName()
 {
 	return m_userName;
+}
+
+//输入事件
+void registerSystem::inputEvent()
+{
+	ExMessage msg;
+	while (peekmessage(&msg)) {
+
+		if (msg.message == WM_LBUTTONDOWN) {
+			int mx = msg.x;
+			int my = msg.y;
+			//点击了账号输入框
+			if (mx > m_accountInputBox.beginX && mx< m_accountInputBox.endX && my>m_accountInputBox.beginY && my < m_accountInputBox.endY) {
+				m_isInputAccount = true;
+				m_isInputPwd = false;
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+				}
+				m_cursorPos.second = m_accountInputBox.beginY + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 4;
+				m_cursorPos.first = m_accountInputBox.beginX + textwidth(m_account)+ GAP_TEXT_CURSOR_W;
+
+				
+
+			}
+			//点击了密码输入框
+			else if (mx > m_pwdInputBox.beginX && mx<m_pwdInputBox.endX && my>m_pwdInputBox.beginY && my < m_pwdInputBox.endY) {
+				m_isInputPwd = true;
+				m_isInputAccount = false;
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+				}
+
+				m_cursorPos.second = m_pwdInputBox.beginY + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 4;
+				m_cursorPos.first = m_pwdInputBox.beginX + textwidth(m_pwd) + GAP_TEXT_CURSOR_W;
+
+			}
+			//在注册界面点击了邮箱输入框
+			else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_emailInputBox.beginX && mx<m_emailInputBox.endX &&
+				my>m_emailInputBox.beginY && my < m_emailInputBox.endY) {
+
+				//切换光标
+				m_isInputPwd = false;
+				m_isInputAccount = false;
+				m_isInputVerificationCode = false;
+				m_isInputEmail = true;
+
+				m_cursorPos.second = m_emailInputBox.beginY + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 4;
+				m_cursorPos.first = m_emailInputBox.beginX + textwidth(m_email) + GAP_TEXT_CURSOR_W;
+
+			}
+			//在注册界面点击了验证码输入框
+			else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_verificationCodeInputBox.beginX && m_verificationCodeInputBox.endX > mx &&
+				my > m_verificationCodeInputBox.beginY && m_verificationCodeInputBox.endY > my) {
+
+				//切换光标
+				m_isInputPwd = false;
+				m_isInputAccount = false;
+				m_isInputVerificationCode = true;
+				m_isInputEmail = false;
+
+				m_cursorPos.second = m_verificationCodeInputBox.beginY + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 4;
+				m_cursorPos.first = m_verificationCodeInputBox.beginX + textwidth(m_verificationCode) + GAP_TEXT_CURSOR_W;
+			}
+			else {//非点击输入框
+
+				m_isInputAccount = false;
+				m_isInputPwd = false;
+
+				if (m_windowState == WINDOW_STATE_REGISTER) {
+					m_isInputVerificationCode = false;
+					m_isInputEmail = false;
+				}
+
+				m_cursorPos.first = -100;
+				m_cursorPos.second = -100;
+
+				//在登录界面点击了提交按钮
+				if (m_windowState == WINDOW_STATE_LOGIN && mx > m_confirmSubmitBtn.beginX && mx< m_confirmSubmitBtn.endX &&
+					my>m_confirmSubmitBtn.beginY && my < m_confirmSubmitBtn.endY && wcslen(m_account)>0&&wcslen(m_pwd)>0) {
+
+					sendLoginRequest();
+				}
+				//点击了注册按钮
+				else if (mx > m_registerBtn.beginX && mx< m_registerBtn.endX && my>m_registerBtn.beginY && my < m_registerBtn.endY) {
+					//若当前窗口为登录窗口，则跳转到注册窗口
+					if (m_windowState == WINDOW_STATE_LOGIN) {
+						initRegisterWindow();
+						m_windowState = WINDOW_STATE_REGISTER;
+					}
+					//若当前窗口为注册窗口，则进行注册账号，向服务器发送请求
+					else if (m_windowState == WINDOW_STATE_REGISTER) {
+
+						sendRegisterRequest();
+					}
+				}
+				//在注册账号界面点击了发送验证码按钮
+				else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_sendVerificationCodeBtn.beginX && mx< m_sendVerificationCodeBtn.endX &&
+					my>m_sendVerificationCodeBtn.beginY && my < m_sendVerificationCodeBtn.endY && !m_isVCodeCooldown) {
+
+					if (sendGetVerificationCodeRequest()) {
+						m_countdownTime = VEIFI_CODE_EXPIRE_TIEM_S;
+						m_isVCodeCooldown = true;
+						m_future = std::async(std::launch::async, &registerSystem::verifiCodeCountdown, this);
+					}
+
+				}
+				//在注册界面点击了返回按钮
+				else if (m_windowState == WINDOW_STATE_REGISTER && mx > m_RegisterWindowReturnBtn.beginX && mx< m_RegisterWindowReturnBtn.endX &&
+					my>m_RegisterWindowReturnBtn.beginY && my < m_RegisterWindowReturnBtn.endY) {
+					resetLoginWindowSet();
+					m_windowState = WINDOW_STATE_LOGIN;
+
+				}
+
+
+
+			}
+		}
+
+		//事件为键盘事件时
+		else if (msg.message == WM_CHAR) {
+			//正在输入账号
+			if (m_isInputAccount) {
+				//输入为回退(backspace)时
+				if (msg.ch == _T('\b')) {
+					delOldChar(m_account);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_account, msg.ch);
+				}
+				updateCursorPos(&m_accountInputBox, m_account);
+			}
+			//正在输入密码
+			else if (m_isInputPwd) {
+				//输入为回退(backspace)时
+				if (msg.ch == _T('\b')) {
+					delOldChar(m_pwd);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_pwd, msg.ch);
+				}
+				updateCursorPos(&m_pwdInputBox, m_pwd);
+			}
+			//正在输入邮箱
+			else if (m_isInputEmail) {
+				//输入为回退(backspace)时
+				if (msg.ch == _T('\b')) {
+					delOldChar(m_email);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_email, msg.ch);
+				}
+				updateCursorPos(&m_emailInputBox, m_email);
+			}
+			//正在输入验证码
+			else if (m_isInputVerificationCode) {
+				//输入为回退(backspace)时
+				if (msg.ch == _T('\b')) {
+					delOldChar(m_verificationCode);
+				}//输入为普通字符时
+				else {
+					addNewChar(m_verificationCode, msg.ch);
+				}
+				updateCursorPos(&m_verificationCodeInputBox, m_verificationCode);
+			}
+			
+		}
+	}
+}
+
+void registerSystem::updateCursorPos(Button* btn, wchar_t* content)
+{
+	m_cursorPos.second = btn->beginY + BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H / 4;
+	m_cursorPos.first = btn->beginX + textwidth(content) + GAP_TEXT_CURSOR_W;
 }
 
 

@@ -43,5 +43,7 @@ private:
 	wchar_t m_userName[32];//用户名
 
 	int* m_colorId;//聊天栏每条信息的颜色
+
+	int m_preColorId;//聊天栏中上一条消息的颜色
 };
 

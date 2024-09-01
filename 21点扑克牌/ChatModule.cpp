@@ -11,6 +11,7 @@
 
 #define CHAT_COLUMN_W 300//聊天栏宽度
 
+//聊天栏文本颜色
 COLORREF textColors[10] = { WHITE,BLUE,GREEN,RGB(255, 192, 203),RGB(255, 105, 180),RGB(238, 130, 238),RGB(0, 255, 255),RGB(255, 255, 0),RGB(253, 245, 230),RGB(255, 69, 0) };
 
 ChatModule::ChatModule(SOCKET sock, const wchar_t* userNmae)
@@ -35,6 +36,8 @@ ChatModule::ChatModule(SOCKET sock, const wchar_t* userNmae)
 
 	m_colorId = new int[MAX_INPUT_CHAR_NUM_ONCE];
 	memset(m_colorId, 0, MAX_INPUT_CHAR_NUM_ONCE);
+
+	m_preColorId = -1;//初始化为-1，则在第一条消息时不会有任何颜色限制
 }
 
 ChatModule::ChatModule()
@@ -176,7 +179,9 @@ void ChatModule::addTextToAllText(wchar_t* text)
 
 	//将新数据拷贝到m_allText
 	wchar_t* t = text;
-	int textcolor = rand() % 10;
+	int textcolor;
+	while ((textcolor = rand() % 10) == m_preColorId);
+	m_preColorId = textcolor;
 	for (int i = MAX_ALL_TEXT_CHAR_NUM - row; i < MAX_ALL_TEXT_CHAR_NUM; i++) {
 		wcsncpy(m_allText[i], t, MAX_CHAT_COLUMN_INDIVIDUAL_LINE_CHAR_NUM - 1);
 		m_colorId[i] = textcolor;

@@ -51,6 +51,12 @@
     <ClCompile Include="Alpha.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Slider.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Volumn.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Card.h">
@@ -68,9 +74,6 @@
     <ClInclude Include="Button.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Setting.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="OptionBtn.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -84,6 +87,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Alpha.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Slider.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Setting.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Volumn.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

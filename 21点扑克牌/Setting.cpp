@@ -28,6 +28,8 @@ Setting::Setting(SOCKET sock, wchar_t* account, wchar_t* userName)
 	m_changeNameBtn = Button(btnX, btnY, BTN_SIZE_CHANGE_NAME_W, BTN_SIZE_CHANGE_NAME_H);
 	m_changePwdBtn = Button(btnX + 40 + BTN_SIZE_CHANGE_NAME_W, btnY, BTN_SIZE_CHANGE_PWD_W, BTN_SIZE_CHANGE_PWD_H);
 	m_returnBtn = Button(0, 0, BTN_SIZE_SETTING_RETURN_W, BTN_SIZE_SETTING_RETURN_H);
+
+	
 }
 
 void Setting::draw()
@@ -63,7 +65,8 @@ void Setting::draw()
 		}
 		case ENUM_OPTION_BTN_LABEL_VOLUMN://音量相关
 		{
-
+			Volumn::getInstance().draw();
+			//绘制滑条
 			break;
 		}
 		default:
@@ -122,10 +125,15 @@ void Setting::inputEvent()
 				}
 				case ENUM_OPTION_BTN_LABEL_VOLUMN:
 				{
-
+					
 				}
 			}
 		}
+
+		if (m_curMainWindowLabel == ENUM_OPTION_BTN_LABEL_VOLUMN) {
+			Volumn::getInstance().inputEvent(&msg);
+		}
+
 	}
 }
 

@@ -6,15 +6,24 @@
 enum MyMessageBoxType {
 	MMBT_OK,
 	MMBT_TRY,
+
+
+	MMBT_MAX,
 };
-int myMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK);
-int myMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK);
+//消息盒子返回结果
+enum MyMessageBoxResult {
+	MMBR_OK,
+	MMBR_TRY,
+	MMBR_CANCEL,
+};
+int myMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK, LPCTSTR bgImgPath = _T(""));
+int myMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK, LPCTSTR bgImgPath = _T(""));
 
 class MyMessageBox
 {
 public:
-	MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK);
-	MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK);
+	MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK,LPCTSTR bgImgPath=_T(""));
+	MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType = MMBT_OK, LPCTSTR bgImgPath = _T(""));
 	~MyMessageBox();
 	int play();
 protected:

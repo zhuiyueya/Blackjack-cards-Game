@@ -9,6 +9,9 @@
 
 //-------------需要修改的如上-----------------
 
+#define MUSIC_PATH_MAIN_WINDOW _T("mainMusic1.mp3")//主界面音乐文件路径
+
+
 
 #define SERVER_PORT 8888 //服务器守候的端口号
 
@@ -32,6 +35,11 @@
 #define BTN_SIZE_80_40_W 80
 #define BTN_SIZE_40_40_W 40
 #define BTN_SIZE_40_40_H 40
+
+#define BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_W  BTN_SIZE_300_40_W//登录注册界面输入框的大小
+#define BTN_SIZE_LOGIN_REGISTER_INPUX_BOX_H  BTN_SIZE_300_40_H
+
+#define GAP_TEXT_CURSOR_W 10//输入框中文本和光标之间的间隙
 
 #define BTN_SIZE_CANCEL_MATCH_W BTN_SIZE_100_40_W//匹配界面返回按钮（取消匹配）
 #define BTN_SIZE_CANCEL_MATCH_H BTN_SIZE_100_40_H
@@ -90,8 +98,7 @@ struct PDU {
 };
 //数据类型
 enum procotol {
-	ENUM_NULL,
-
+	
 	ENUM_MSG_LOGIN_REQUEST,//登录请求
 	ENUM_MSG_LOGIN_RESPOND,//登录回复
 

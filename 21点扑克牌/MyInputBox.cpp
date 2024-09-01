@@ -67,6 +67,7 @@ MyInputBox::MyInputBox(const wchar_t* pcontent, const wchar_t* ptitle, int messa
 			m_contentSplitPoint.push_back(i + 1);
 		}
 	}
+	maxTextW = max(maxTextW, textwidth(preP));
 	//若没有换行符，则为最大宽度即整段内容的宽度
 	if (rfNum == 0)maxTextW = textwidth(pcontent);
 

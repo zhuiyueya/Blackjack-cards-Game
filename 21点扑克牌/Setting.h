@@ -3,9 +3,11 @@
 #include"OptionBtn.h"
 #include"MyMessageBox.h"
 #include"MyInputBox.h"
+#include"Slider.h"
 #include<winsock2.h>
 #include<vector>
 #pragma comment(lib,"ws2_32.lib")
+#include"Volumn.h"
 //设置界面
 class Setting
 {
@@ -45,5 +47,7 @@ private:
 	bool m_isQuit;//是否退出设置界面
 
 	Button m_returnBtn;//返回主界面的按钮
+
+	Slider m_volumnSlider;//音量滑条
 };
 
