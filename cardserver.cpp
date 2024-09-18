@@ -352,6 +352,9 @@ void gameRecvEvent(struct epoll_event*ev){
 			PDU respdu;
 			//生成随机牌号
 			respdu.cardId=randomCardChoosed();
+			if(pdu.msgLen==30)
+			std::cout<<"你干嘛\n";
+			
 
 			respdu.msgType=ENUM_MSG_TAKECARD_RESPOND;
 			send(ev->data.fd,(void*)&respdu,sizeof(respdu),0);
@@ -442,6 +445,9 @@ void gaming(){
 	//重置牌
 	memset(used_card,0,54);
 
+	//随机种子
+	srand(time(0));
+
 	//初始化socket
 	int ssock=socket(AF_INET,SOCK_STREAM,0);
 	struct sockaddr_in saddr,caddr;
@@ -484,6 +490,8 @@ void gaming(){
 					//关闭连接
 					close(peerPlayerInfo[j].event.data.fd);
 					if(res==-1)perror("gaming close error:");
+					std::cout<<"故障\n";
+					
 				}
 				isQuitGame=true;
 				break;
