@@ -6,6 +6,7 @@
 #include <codecvt>
 #include"Alpha.h"
 #include"MyInputBox.h"
+#include"Slider.h"
 //启动游戏
 void StartGame();
 int main1() {
@@ -23,12 +24,14 @@ int main2() {
 	registerSystem sys;
 	initgraph(WIDTH, HEIGHT);
 	setbkmode(TRANSPARENT);
+	
 	BeginBatchDraw();
 	while (1) {
 		cleardevice();
 		sys.draw();
 		sys.mouseEvent();
 		FlushBatchDraw();
+		
 		Sleep(60);
 	}
 }
@@ -111,6 +114,36 @@ int main5() {
 		}
 		Sleep(60);
 		
+	}
+}
+
+
+
+int main6() {
+	
+	initgraph(WIDTH, HEIGHT);
+	setbkmode(RED);
+	int ret;
+	
+	cleardevice();
+	ret = myMessageBox(0,0,_T("m按实际的交换机撒谎觉得很久很久\najshdjhaj\n\najhsdah"), _T("m"),1);
+	std::cout << ret << std::endl;
+	return 0;
+}
+
+int main7() {
+	initgraph(WIDTH, HEIGHT);
+	setbkmode(TRANSPARENT);
+	setbkcolor(WHITE);
+	Slider s(100, 100, 200, 10, 100, 1, 1);
+	BeginBatchDraw();
+	while (1) {
+		cleardevice();
+		s.draw();
+		//s.inputEvent();
+		std::cout << s.getCurOffsetNum() << std::endl;
+		Sleep(60);
+		FlushBatchDraw();
 	}
 }
 

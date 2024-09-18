@@ -18,7 +18,7 @@ public:
 	
 	//绘制登录界面
 	void draw();
-	//监听登录界面鼠标事件
+	//监听登录界面鼠标事件---暂废弃
 	void mouseEvent();
 
 	//判断是否确认提交
@@ -36,7 +36,7 @@ public:
 	//发送登录请求
 	void sendLoginRequest();
 
-	//设置输入时光标|闪烁
+	//设置输入时光标|闪烁---暂废弃
 	void setInputFlashFlag(bool isInput, wchar_t* content);
 
 	//获取密码
@@ -45,10 +45,10 @@ public:
 	//当切换为注册界面时的初始化
 	void initRegisterWindow();
 
-	//为鼠标点击的所属添加光标
+	//为鼠标点击的所属添加光标---暂废弃
 	void addCursor(wchar_t *content);
 
-	//为非鼠标点击的所属移除光标
+	//为非鼠标点击的所属移除光标---暂废弃
 	void removeCursor(wchar_t* content);
 
 	//往content内添加新字符
@@ -71,18 +71,32 @@ public:
 	int verifiCodeCountdown();
 
 	wchar_t* getUserName();
+
+	//输入事件
+	void inputEvent();
+
+	//更新光标位置
+	void updateCursorPos(Button*btn,wchar_t *content);
+
 private:
 	IMAGE m_bg;//背景图
+
 	wchar_t m_account[33] = {0};//存储账号
+
 	wchar_t m_pwd[33] = { 0 };//存储密码
+
 	//账号输入框
 	Button m_accountInputBox;
+
 	//账号输入框提示
 	Button m_accountInputTip;
+
 	//确认提交按钮
 	Button m_confirmSubmitBtn;
+
 	//是否处于输入账号状态
 	bool m_isInputAccount;
+
 	//是否确认提交账号密码
 	bool m_isConfirmSubmit;
 
@@ -144,6 +158,9 @@ private:
 
 	//存储用户游戏名
 	wchar_t m_userName[32];
+
+	//光标位置
+	std::pair<int, int>m_cursorPos;
 };
 
 

@@ -8,10 +8,11 @@
 #define BOTTOM_MARGIN 20//底部空白
 #define LEFT_MARGIN 20//左边空白
 #define RIGHT_MARGIN 20//右边空白
-#define BTN_CONTENT_MIDDLE_MARGIN 20//按钮与内容之间的间隔
-MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
+
+MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType, LPCTSTR bgImgPath )
 {
-	loadimage(&bgImg, _T("./background-1.png"));
+	//若messageBoxType非指定类型，则转换为MMBT_OK
+	if (messageBoxType < MMBT_OK || messageBoxType >= MMBT_MAX)messageBoxType = MMBT_OK;
 
 	setfillcolor(WHITE);
 	
@@ -45,13 +46,31 @@ MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t*
 			contentSplitPoint.push_back(i+1);
 		}
 	}
+
+	maxW = max(maxW, textwidth(preP));
 	//若没有换行符，则为最大宽度即整段内容的宽度
 	if (rfNum == 0)maxW = textwidth(pcontent);
 	
+	//判断按钮总长度是否比文本大
+	int totalBtnW = 0;
+	switch (messageBoxType) {
+	case MMBT_OK:
+	{
+		totalBtnW = max(totalBtnW, BTN_WIDTH);
+		break;
+	}
+	case MMBT_TRY:
+	{
+		totalBtnW = max(totalBtnW, BTN_WIDTH * 3);
+		break;
+	}
+	}
+	maxW = max(maxW, totalBtnW);
 
-	endX = x + maxW + BTN_WIDTH + LEFT_MARGIN + RIGHT_MARGIN+ BTN_CONTENT_MIDDLE_MARGIN;
-	int contentH = textheight(pcontent) * (rfNum + 1) + TEXT_MIDDLE_MARGIN * (rfNum);
-	endY = beginY+textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN;
+	endX = beginX + maxW + LEFT_MARGIN + RIGHT_MARGIN;
+	int contentH = textheight(pcontent) * (rfNum + 1) + TEXT_MIDDLE_MARGIN * (rfNum+1);
+	endY = beginY + textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN + BTN_HEIGHT;
+
 	/*int tw = textwidth(pcontent);
 	if (tw > MAX_MESSAGEBOX_WIDTH) {
 		endX = MAX_MESSAGEBOX_WIDTH+BTN_WIDTH;
@@ -64,22 +83,33 @@ MyMessageBox::MyMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t*
 	}*/
 	
 	switch (messageBoxType) {
-		case MMBT_OK:
-		{
-			OptionBtn btn(endX - BTN_WIDTH-RIGHT_MARGIN, beginY + BTN_HEIGHT+ textheight(ptitle)+ TOP_MARGIN + MIDDLE_LINE_MARGIN, BTN_WIDTH, BTN_HEIGHT, MMBT_OK,_T("确定"));
-			buttons.push_back(btn);
-			break;
-		}
-		case MMBT_TRY:
-		{
-			break;
-		}
+	case MMBT_OK:
+	{
+		OptionBtn btn(beginX+(endX-beginX-BTN_WIDTH)/2, endY - BOTTOM_MARGIN - BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+			MMBR_OK, _T("确定"));
+		buttons.push_back(btn);
+		break;
 	}
+	case MMBT_TRY:
+	{
+		OptionBtn btn(beginX + LEFT_MARGIN, endY - BOTTOM_MARGIN - BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+			MMBR_TRY, _T("重试"));
+		buttons.push_back(btn);
+
+		btn = OptionBtn(endX - RIGHT_MARGIN - BTN_WIDTH, endY - BOTTOM_MARGIN - BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+			MMBR_CANCEL, _T("取消"));
+		buttons.push_back(btn);
+		break;
+	}
+	}
+	if (bgImgPath != _T(""))
+	loadimage(&bgImg, bgImgPath,endX-beginX,endY-beginY );
 }
 
-MyMessageBox::MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
+MyMessageBox::MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType, LPCTSTR bgImgPath)
 {
-	loadimage(&bgImg, _T("./background-1.png"));
+	//若messageBoxType非指定类型，则转换为MMBT_OK
+	if (messageBoxType < MMBT_OK || messageBoxType >= MMBT_MAX)messageBoxType = MMBT_OK;
 
 	setfillcolor(WHITE);
 
@@ -110,30 +140,56 @@ MyMessageBox::MyMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int m
 			contentSplitPoint.push_back(i + 1);
 		}
 	}
+	maxW = max(maxW, textwidth(preP));
 	//若没有换行符，则为最大宽度即整段内容的宽度
 	if (rfNum == 0)maxW = textwidth(pcontent);
 
+	//判断按钮总长度是否比文本大
+	int totalBtnW = 0;
+	switch (messageBoxType) {
+	case MMBT_OK:
+	{
+		totalBtnW = max(totalBtnW,BTN_WIDTH);
+		break;
+	}
+	case MMBT_TRY:
+	{
+		totalBtnW = max(totalBtnW, BTN_WIDTH*3);
+		break;
+	}
+	}
+	maxW = max(maxW, totalBtnW);
 
-	beginX = (getwidth() - (maxW + BTN_WIDTH + LEFT_MARGIN + RIGHT_MARGIN + BTN_CONTENT_MIDDLE_MARGIN)) / 2;
-	int contentH = textheight(pcontent) * (rfNum + 1) + TEXT_MIDDLE_MARGIN * (rfNum);
-	beginY = (getheight() - (textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN)) / 2;
+	beginX = (getwidth() - (maxW+ LEFT_MARGIN + RIGHT_MARGIN)) / 2;
 
-	endX = beginX + maxW + BTN_WIDTH + LEFT_MARGIN + RIGHT_MARGIN + BTN_CONTENT_MIDDLE_MARGIN;
-	endY = beginY+textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN;
+	int contentH = textheight(pcontent) * (rfNum + 1) + TEXT_MIDDLE_MARGIN * (rfNum+1);
+	beginY = (getheight() - (textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN+BTN_HEIGHT)) / 2;
+
+	endX = beginX + maxW + LEFT_MARGIN + RIGHT_MARGIN;
+	endY = beginY+textheight(ptitle) + contentH + TOP_MARGIN + MIDDLE_LINE_MARGIN + BOTTOM_MARGIN + BTN_HEIGHT;
 
 	switch (messageBoxType) {
 		case MMBT_OK:
 		{
-			OptionBtn btn(endX - BTN_WIDTH - RIGHT_MARGIN, beginY  + textheight(ptitle) + TOP_MARGIN + MIDDLE_LINE_MARGIN, BTN_WIDTH, BTN_HEIGHT, MMBT_OK, _T("确定"));
+			OptionBtn btn(beginX + (endX - beginX - BTN_WIDTH) / 2, endY-BOTTOM_MARGIN-BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+				MMBR_OK, _T("确定"));
 			buttons.push_back(btn);
 			break;
 		}
 		case MMBT_TRY:
 		{
+			OptionBtn btn(beginX+LEFT_MARGIN, endY - BOTTOM_MARGIN - BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+				MMBR_TRY, _T("重试"));
+			buttons.push_back(btn);
+
+			btn=OptionBtn(endX-RIGHT_MARGIN-BTN_WIDTH, endY - BOTTOM_MARGIN - BTN_HEIGHT, BTN_WIDTH, BTN_HEIGHT,
+				MMBR_CANCEL, _T("取消"));
+			buttons.push_back(btn);
 			break;
 		}
 	}
-
+	if (bgImgPath != _T(""))
+	loadimage(&bgImg, bgImgPath, endX - beginX, endY - beginY);
 }
 
 MyMessageBox::~MyMessageBox()
@@ -144,9 +200,11 @@ MyMessageBox::~MyMessageBox()
 
 void MyMessageBox::draw()
 {
-	//putimage(0, 0, &bgImg);
+	
 	//背景板
 	fillroundrect(beginX, beginY, endX, endY, 10, 10);
+
+	putimage(beginX, beginY, &bgImg);
 
 	int x = beginX+LEFT_MARGIN;
 	int y = TOP_MARGIN+beginY;
@@ -182,12 +240,25 @@ void MyMessageBox::inputEvent()
 			for (OptionBtn& btn : buttons) {
 				if (mx > btn.beginX && mx<btn.endX && my>btn.beginY && my < btn.endY) {
 					switch (btn.m_label) {
-						case MMBT_OK:
+						case MMBR_OK:
 						{
-							clickedBtnType = MMBT_OK;
+							clickedBtnType = MMBR_OK;
 							isQuit = true;
 							break;
 						}
+						case MMBR_TRY:
+						{
+							clickedBtnType = MMBR_TRY;
+							isQuit = true;
+							break;
+						}
+						case MMBR_CANCEL:
+						{
+							clickedBtnType = MMBR_CANCEL;
+							isQuit = true;
+							break;
+						}
+
 					}
 				}
 			}
@@ -205,19 +276,18 @@ int MyMessageBox::play()
 		Sleep(60);
 	}
 	//BeginBatchDraw();
-	setfillstyle(BS_NULL);
 	return clickedBtnType;
 }
 
-int myMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
+int myMessageBox(int x, int y, const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType, LPCTSTR bgImgPath)
 {
-	MyMessageBox box(x, y, pcontent, ptitle, messageBoxType);
+	MyMessageBox box(x, y, pcontent, ptitle, messageBoxType, bgImgPath);
 	return box.play();
 }
 
-int myMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType)
+int myMessageBox(const wchar_t* pcontent, const wchar_t* ptitle, int messageBoxType, LPCTSTR bgImgPath)
 {
 	
-	MyMessageBox box(pcontent, ptitle, messageBoxType);
+	MyMessageBox box(pcontent, ptitle, messageBoxType, bgImgPath);
 	return box.play();
 }

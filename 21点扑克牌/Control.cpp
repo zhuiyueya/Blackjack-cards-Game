@@ -1,6 +1,8 @@
 #include "Control.h"
 #include<iostream>
 #include <Ws2tcpip.h>
+#include<mmsystem.h>
+#pragma comment(lib,"winmm.lib")
 //登录系统
 void Control::login()
 {
@@ -11,6 +13,28 @@ void Control::login()
 
 	//登录完初始化设置
 	m_setting = Setting(csock, m_account, m_name);
+
+	//登录完播放音乐
+
+	// 使用mciSendString发送命令给多媒体控制接口
+	// 这里打开并播放指定的mp3文件
+	wchar_t command[128];
+	swprintf(command, _T("open %s alias mymusic"), MUSIC_PATH_MAIN_WINDOW);
+	if (mciSendString(command, NULL, 0, NULL) != MMSYSERR_NOERROR)
+	{
+		printf("Error opening the file.\n");
+	}
+
+	wchar_t cc[256];
+	swprintf(cc, L"setaudio mymusic volume to %d", 0);
+	mciSendString(cc, 0, 0, 0);
+
+	//播放
+	if (mciSendStringA("play mymusic repeat", NULL, 0, NULL) != MMSYSERR_NOERROR)
+	{
+		printf("Error playing the file.\n");
+		mciSendStringA("close mymusic", NULL, 0, NULL);
+	}
 }
 
 Control::Control()
@@ -57,6 +81,25 @@ Control::Control()
 	loadimage(&m_settingImg, _T("./设置.png"), BTN_SIZE_SETTING_W, BTN_SIZE_SETTING_H);
 
 	m_chat = NULL;
+
+
+	////登录完播放音乐
+
+	//// 使用mciSendString发送命令给多媒体控制接口
+	//// 这里打开并播放指定的mp3文件
+	//wchar_t command[128];
+	//swprintf(command, _T("open %s alias mymusic"), MUSIC_PATH_MAIN_WINDOW);
+	//if (mciSendString(command, NULL, 0, NULL) != MMSYSERR_NOERROR)
+	//{
+	//	printf("Error opening the file.\n");
+	//}
+
+	////播放
+	//if (mciSendStringA("play mymusic", NULL, 0, NULL) != MMSYSERR_NOERROR)
+	//{
+	//	printf("Error playing the file.\n");
+	//	mciSendStringA("close mymusic", NULL, 0, NULL);
+	//}
 }
 
 //游戏初始化
@@ -203,11 +246,12 @@ void Control::draw()
 void Control::getRandomCardFromServer()
 {
 	//std::cout << "一次\n";
+	static int tmp = 0;
 	PDU pdu;
-	pdu.msgLen = 30;
+	pdu.msgLen = tmp;
 	pdu.msgType = ENUM_MSG_TAKECARD_REQUEST;
 	send(gameSock, (char*)&pdu, sizeof(pdu), 0);
-	
+	tmp++;
 }
 
 //游戏按键事件

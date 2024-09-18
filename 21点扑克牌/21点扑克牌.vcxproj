@@ -139,6 +139,8 @@
     <ClCompile Include="protocol.cpp" />
     <ClCompile Include="registerSystem.cpp" />
     <ClCompile Include="Setting.cpp" />
+    <ClCompile Include="Slider.cpp" />
+    <ClCompile Include="Volumn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Alpha.h" />
@@ -152,6 +154,8 @@
     <ClInclude Include="protocol.h" />
     <ClInclude Include="registerSystem.h" />
     <ClInclude Include="Setting.h" />
+    <ClInclude Include="Slider.h" />
+    <ClInclude Include="Volumn.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
