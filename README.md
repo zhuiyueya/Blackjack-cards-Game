@@ -22,7 +22,7 @@
 
 #需要安装redis并运行
 
-#需安装OpenSSL
+#需安装OpenSSL，hiredis
 
 
 3.服务端文件需要修改的地方
@@ -33,11 +33,19 @@
 
 4.编译
 
-1）g++ cardserver.cpp -o cardserver -I/usr/include/mysql/ -L/usr/local/mysql/lib/ -lmysqlclient -lhiredis
+编译cardserver
 
-2）g++ g++ sendVCode.cpp -o sendVCode -lssl -lcrypto
+1）先通过`mysql_config --cflags`找到编译用的头文件路径，例如我这里运行后输出：-I/usr/include/mysql/
 
-3）（ps:若未安装g++/ssl请自行安装）
+2）再通过`mysql_config --libs`找到链接用的库文件路径，例如我这里运行后输出：-L/usr/local/mysql/lib/ -lmysqlclient
+
+3）把两条输出结果添加到命令`g++ cardserver.cpp -o cardserver -lhiredis`之后，例如我这里是g++ cardserver.cpp -o cardserver -lhiredis -I/usr/include/mysql/ -L/usr/local/mysql/lib/ -lmysqlclient
+
+编译sendVCode
+
+1）g++ g++ sendVCode.cpp -o sendVCode -lssl -lcrypto
+
+（ps:若未安装g++/ssl请自行安装）
 
 
 5.运行
